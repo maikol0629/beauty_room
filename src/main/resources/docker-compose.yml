@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  db:
+    image: mariadb:latest
+    container_name: db-1
+    environment:
+      MYSQL_ROOT_PASSWORD: wavera27
+      MYSQL_DATABASE: beauty_room
+      MYSQL_USER: dev
+      MYSQL_PASSWORD: dev123
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:
+
+
