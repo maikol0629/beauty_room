@@ -21,6 +21,7 @@ public class Client extends User {
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
+    @Builder.Default
     private List<Appointment> appointments = new ArrayList<>();
 
     @PrePersist

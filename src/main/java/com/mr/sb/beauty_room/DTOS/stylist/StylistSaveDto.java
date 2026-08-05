@@ -1,7 +1,8 @@
 package com.mr.sb.beauty_room.DTOS.stylist;
 
-import com.mr.sb.beauty_room.entities.Service;
-import com.mr.sb.beauty_room.entities.StylistRoom;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,18 +13,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StylistSaveDto {
-
+    @NotBlank
+    @Size(min = 2, max = 100)
     private String name;
+
+    @NotBlank
+    @Email
     private String email;
+
+    @NotBlank
+    @Size(min = 7, max = 20)
     private String phone;
     private long id_stylist_room;
-
-
-    public boolean isNotEmpty(){
-
-        return !this.name.isEmpty() && !this.email.isEmpty()
-                && !this.phone.isEmpty() && this.phone.length()>10;
-    }
-
-
 }

@@ -1,6 +1,8 @@
 package com.mr.sb.beauty_room.DTOS.service;
 
-import com.mr.sb.beauty_room.entities.Stylist;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,13 +14,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceSaveDto {
-
+    @NotBlank
     private String name;
+
+    @NotBlank
     private String description;
+
+    @Min(5000)
     private float price;
+
+    @Min(15)
     private long duration;
-    private long id_stylist;
 
-
+    @NotNull
+    private Long id_stylist;
 
 }

@@ -1,7 +1,6 @@
 package com.mr.sb.beauty_room.DTOS.stylist;
 
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
-import com.mr.sb.beauty_room.entities.Service;
 import com.mr.sb.beauty_room.entities.StylistRoom;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +20,7 @@ public class StylistResponseDto {
     private String name;
     private String email;
     private String phone;
+    @Builder.Default
     private List<ServiceResponseDto> services = new ArrayList<>();
     private StylistRoom stylistRoom;
 

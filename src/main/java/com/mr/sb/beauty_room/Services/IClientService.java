@@ -2,10 +2,8 @@ package com.mr.sb.beauty_room.Services;
 
 import com.mr.sb.beauty_room.DTOS.client.ClientResponseDto;
 import com.mr.sb.beauty_room.DTOS.client.ClientSaveDto;
-import com.mr.sb.beauty_room.entities.Client;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface IClientService {
 

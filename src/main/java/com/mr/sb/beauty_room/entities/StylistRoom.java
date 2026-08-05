@@ -18,6 +18,11 @@ public class StylistRoom {
     @Column(nullable = false)
     private String address;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    @JsonIgnore
+    private Tenant tenant;
+
     @OneToMany(mappedBy = "stylistRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Stylist> stylists;

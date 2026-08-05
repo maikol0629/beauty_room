@@ -6,6 +6,7 @@ import com.mr.sb.beauty_room.DTOS.client.ClientResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.stylist.StylistResponseDto;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
+import com.mr.sb.beauty_room.Security.TenantInterceptor;
 
 import com.mr.sb.beauty_room.entities.*;
 import com.mr.sb.beauty_room.repository.*;
@@ -15,10 +16,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import com.mr.sb.beauty_room.Services.IBlockedSlotService;
+import com.mr.sb.beauty_room.Services.INotificationService;
 
 @Slf4j
 @org.springframework.stereotype.Service
@@ -29,111 +34,49 @@ public class AppointmentServiceImplement implements IAppointmentService {
     private final StylistRepository stylistRepository;
     private final ServiceRepository serviceRepository;
     private final StylistScheduleRepository stylistScheduleRepository;
-    
+    private final IBlockedSlotService blockedSlotService;
+    private final INotificationService notificationService;
+
     @Autowired
-    public AppointmentServiceImplement(AppointmentRepository appointmentRepository, ClientRepository clientRepository, StylistRepository stylistRepository, ServiceRepository serviceRepository, StylistScheduleRepository stylistScheduleRepository) {
+    public AppointmentServiceImplement(AppointmentRepository appointmentRepository, ClientRepository clientRepository, StylistRepository stylistRepository, ServiceRepository serviceRepository, StylistScheduleRepository stylistScheduleRepository, IBlockedSlotService blockedSlotService, INotificationService notificationService) {
         this.appointmentRepository = appointmentRepository;
         this.clientRepository = clientRepository;
         this.stylistRepository = stylistRepository;
         this.serviceRepository = serviceRepository;
         this.stylistScheduleRepository = stylistScheduleRepository;
+        this.blockedSlotService = blockedSlotService;
+        this.notificationService = notificationService;
     }
 
     @Override
     public List<AppointmentResponseDto> findAll() {
-        Iterable<Appointment> iterable = appointmentRepository.findAll();
-        return StreamSupport.stream(iterable.spliterator(), false).map(
-                appointment -> AppointmentResponseDto.builder()
-                        .client(ClientResponseDto.builder()
-                                .name(appointment.getClient().getName_client())
-                                .phone(appointment.getClient().getPhone())
-                                .build())
-                        .startDate(appointment.getStartDate())
-                        .endDate(appointment.getEndDate())
-                        .stylist(StylistResponseDto.builder()
-                                .name(appointment.getStylist().getName_stylist())
-                        .phone(appointment.getStylist().getPhone())
-                        .build())
-                        .build()
-        ).collect(Collectors.toList());
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return StreamSupport.stream(appointmentRepository.findByTenantId(tenantId).spliterator(), false)
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public Optional<AppointmentResponseDto> findById(long id) {
-
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id);
-
-        if (optionalAppointment.isPresent()) {
-            Appointment appointment = optionalAppointment.get();
-            AppointmentResponseDto appointmentResponseDto = AppointmentResponseDto.builder()
-                    .stylist(StylistResponseDto.builder()
-                            .name(appointment.getStylist().getName_stylist())
-                            .phone(appointment.getStylist().getPhone())
-                            .build())
-                    .client(
-                            ClientResponseDto.builder()
-                                    .name(appointment.getClient().getName_client())
-                                    .phone(appointment.getClient().getPhone())
-                                    .build())
-                    .service(
-                            ServiceResponseDto.builder()
-                                    .price(appointment.getService().getPrice())
-                                    .name(appointment.getService().getName_service())
-                                    .description(appointment.getService().getDescription())
-                                    .duration(appointment.getService().getDuration())
-                                    .build())
-                    .startDate(appointment.getStartDate())
-                    .endDate(appointment.getEndDate())
-                    .id(appointment.getId())
-                    .build();
-            return Optional.of(appointmentResponseDto);
-        }
-        return Optional.empty();
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return appointmentRepository.findById(id)
+                .filter(a -> a.getTenant() != null && a.getTenant().getId().equals(tenantId))
+                .map(this::toResponseDto);
     }
-
-
 
     @Override
     public List<AppointmentResponseDto> findAppointmentsByStylistID(long id) {
-        return appointmentRepository.findAppointmentsByStylistId(id).stream()
-                .map(appointment -> AppointmentResponseDto.builder()
-                        .startDate(appointment.getStartDate())
-                        .endDate(appointment.getEndDate())
-                        .service(ServiceResponseDto.builder()
-                                .price(appointment.getService().getPrice())
-                                .name(appointment.getService().getName_service())
-                                .description(appointment.getService().getDescription())
-                                .duration(appointment.getService().getDuration())
-                                .build())
-                        .client(ClientResponseDto.builder()
-                                .name(appointment.getClient().getName_client())
-                                .phone(appointment.getClient().getPhone())
-                                .build())
-                        .id(appointment.getId())
-                        .build())
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return appointmentRepository.findAppointmentsByStylistId(id, tenantId).stream()
+                .map(this::toResponseDto)
                 .toList();
     }
 
     @Override
     public List<AppointmentResponseDto> findAppointmentsByClientID(long id) {
-        return appointmentRepository.findAppointmentsByClientId(id).stream()
-                .map(appointment -> AppointmentResponseDto.builder()
-                        .startDate(appointment.getStartDate())
-                        .endDate(appointment.getEndDate())
-                        .stylist(StylistResponseDto.builder()
-                                .name(appointment.getStylist().getName_stylist())
-                                .phone(appointment.getStylist().getPhone())
-                                .email(appointment.getStylist().getEmail())
-                                .id(appointment.getStylist().getId())
-                                .build())
-                        .service(ServiceResponseDto.builder()
-                                .price(appointment.getService().getPrice())
-                                .name(appointment.getService().getName_service())
-                                .description(appointment.getService().getDescription())
-                                .duration(appointment.getService().getDuration())
-                                .build())
-                        .id(appointment.getId())
-                        .build())
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return appointmentRepository.findAppointmentsByClientId(id, tenantId).stream()
+                .map(this::toResponseDto)
                 .toList();
     }
 
@@ -141,16 +84,17 @@ public class AppointmentServiceImplement implements IAppointmentService {
     @Override
     public boolean save(AppointmentSaveDto appointmentSaveDto) {
 
-        Optional<Client> client = clientRepository.findById(appointmentSaveDto.getId_client());
-        Optional<Stylist> stylist = stylistRepository.findById(appointmentSaveDto.getId_stylist());
-        Optional<Service> service = serviceRepository.findById(appointmentSaveDto.getId_service());
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+
+        Optional<Client> client = clientRepository.findByIdAndTenantId(appointmentSaveDto.getId_client(), tenantId);
+        Optional<Stylist> stylist = stylistRepository.findByIdAndTenantId(appointmentSaveDto.getId_stylist(), tenantId);
+        Optional<Service> service = serviceRepository.findByIdAndTenantId(appointmentSaveDto.getId_service(), tenantId);
 
         if (client.isPresent() && service.isPresent() && stylist.isPresent()) {
             List<Service> services = stylist.get().getServices();
             if (services.contains(service.get())) {
 
                 Duration serviceDuration = Duration.ofMinutes(service.get().getDuration());
-                System.out.println(serviceDuration);// Asegurar que devuelve Duration
                 LocalDateTime endDate = appointmentSaveDto.getStartDate().plus(serviceDuration);
 
                 Appointment appointment = Appointment.builder()
@@ -159,6 +103,7 @@ public class AppointmentServiceImplement implements IAppointmentService {
                         .startDate(appointmentSaveDto.getStartDate())
                         .endDate(endDate)
                         .stylist(stylist.get())
+                        .tenant(Tenant.builder().id(tenantId).build())
                         .build();
 
                 if (validateStylistAvailability(appointment) && validateAppointmentTime(appointment)) {
@@ -173,15 +118,17 @@ public class AppointmentServiceImplement implements IAppointmentService {
     @Transactional
     @Override
     public boolean update(AppointmentSaveDto appointmentSaveDto, long id) {
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id);
-        Optional<Client> client = clientRepository.findById(appointmentSaveDto.getId_client());
-        Optional<Service> service = serviceRepository.findById(appointmentSaveDto.getId_service());
-        Optional<Stylist> stylist = stylistRepository.findById(appointmentSaveDto.getId_stylist());
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id)
+                .filter(a -> a.getTenant() != null && a.getTenant().getId().equals(tenantId));
+        Optional<Client> client = clientRepository.findByIdAndTenantId(appointmentSaveDto.getId_client(), tenantId);
+        Optional<Service> service = serviceRepository.findByIdAndTenantId(appointmentSaveDto.getId_service(), tenantId);
+        Optional<Stylist> stylist = stylistRepository.findByIdAndTenantId(appointmentSaveDto.getId_stylist(), tenantId);
         if (optionalAppointment.isPresent()&&client.isPresent()&&service.isPresent()&&stylist.isPresent()) {
 
             if(stylist.get().getServices().contains(service.get())) {
                 LocalDateTime endDate = appointmentSaveDto.getStartDate().plusMinutes(service.get().getDuration());
-                Appointment appointment = optionalAppointment.get();
+                Appointment existing = optionalAppointment.get();
                 Appointment receivedAppointment =  Appointment.builder()
                         .id(id)
                         .service(service.get())
@@ -189,8 +136,10 @@ public class AppointmentServiceImplement implements IAppointmentService {
                         .startDate(appointmentSaveDto.getStartDate())
                         .endDate(endDate)
                         .stylist(stylist.get())
+                        .status(existing.getStatus())
+                        .tenant(Tenant.builder().id(tenantId).build())
                         .build();
-                if (appointment.equals(receivedAppointment)) {
+                if (existing.equals(receivedAppointment)) {
                     return false;
                 }else if(this.validateStylistAvailability(receivedAppointment)
                 &&this.validateAppointmentTime(receivedAppointment)) {
@@ -206,14 +155,183 @@ public class AppointmentServiceImplement implements IAppointmentService {
 
     @Override
     public boolean deleteById(long id) {
-
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id)
+                .filter(a -> a.getTenant() != null && a.getTenant().getId().equals(tenantId));
 
         if (optionalAppointment.isPresent()) {
             appointmentRepository.deleteById(id);
             return true;
         }
         return false;
+    }
+
+    @Transactional
+    @Override
+    public boolean confirmAppointment(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() != AppointmentStatus.PENDING) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.CONFIRMED);
+            appointmentRepository.save(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
+    @Override
+    public boolean rejectAppointment(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() != AppointmentStatus.PENDING) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.REJECTED);
+            appointmentRepository.save(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
+    @Override
+    public boolean cancelAppointment(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.CANCELLED);
+            appointmentRepository.save(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean completeAppointment(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.COMPLETED);
+            appointmentRepository.save(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    private Optional<Appointment> findAppointmentForTenant(long id) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return appointmentRepository.findById(id)
+                .filter(a -> a.getTenant() != null && a.getTenant().getId().equals(tenantId));
+    }
+
+    @Override
+    public List<AppointmentResponseDto> findAppointmentsByFilters(
+            Long stylistId, Long clientId, AppointmentStatus status,
+            LocalDateTime from, LocalDateTime to) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return appointmentRepository.findAppointmentsByFilters(tenantId, stylistId, clientId, status, from, to)
+                .stream()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
+    private AppointmentResponseDto toResponseDto(Appointment appointment) {
+        return AppointmentResponseDto.builder()
+                .id(appointment.getId())
+                .startDate(appointment.getStartDate())
+                .endDate(appointment.getEndDate())
+                .status(appointment.getStatus())
+                .client(ClientResponseDto.builder()
+                        .id(appointment.getClient().getId())
+                        .name(appointment.getClient().getName_client())
+                        .phone(appointment.getClient().getPhone())
+                        .email(appointment.getClient().getEmail())
+                        .build())
+                .stylist(StylistResponseDto.builder()
+                        .id(appointment.getStylist().getId())
+                        .name(appointment.getStylist().getName_stylist())
+                        .phone(appointment.getStylist().getPhone())
+                        .email(appointment.getStylist().getEmail())
+                        .build())
+                .service(ServiceResponseDto.builder()
+                        .idService(appointment.getService().getId())
+                        .name(appointment.getService().getName_service())
+                        .description(appointment.getService().getDescription())
+                        .price(appointment.getService().getPrice())
+                        .duration(appointment.getService().getDuration())
+                        .build())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public List<LocalTime> getAvailableSlots(Long stylistId, Long serviceId, LocalDate date) {
+        Optional<Stylist> stylistOpt = stylistRepository.findById(stylistId);
+        if (stylistOpt.isEmpty()) {
+            return List.of();
+        }
+        Long tenantId = stylistOpt.get().getTenant() != null ? stylistOpt.get().getTenant().getId() : null;
+        if (tenantId == null) {
+            return List.of();
+        }
+        Optional<Service> serviceOpt = serviceRepository.findByIdAndTenantId(serviceId, tenantId);
+        if (serviceOpt.isEmpty()) {
+            return List.of();
+        }
+
+        int durationMinutes = serviceOpt.get().getDuration();
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+
+        List<StylistSchedule> schedules = stylistScheduleRepository
+                .findByStylistIdAndDayAndTenantId(stylistId, dayOfWeek, tenantId);
+
+        if (schedules.isEmpty()) {
+            return List.of();
+        }
+
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
+
+        List<Appointment> existingAppointments = appointmentRepository
+                .findByStylistIdAndStartDateBetweenAndStatusNotAndTenantId(
+                        stylistId, dayStart, dayEnd, AppointmentStatus.CANCELLED, tenantId);
+
+        List<LocalTime> availableSlots = new ArrayList<>();
+
+        for (StylistSchedule schedule : schedules) {
+            LocalTime slotStart = schedule.getStartTime();
+            LocalTime slotEnd = schedule.getEndTime();
+
+            while (!slotStart.plusMinutes(durationMinutes).isAfter(slotEnd)) {
+                LocalDateTime candidateStart = date.atTime(slotStart);
+                LocalDateTime candidateEnd = candidateStart.plusMinutes(durationMinutes);
+
+                boolean overlaps = existingAppointments.stream().anyMatch(a ->
+                        a.getStartDate().isBefore(candidateEnd) &&
+                        a.getEndDate().isAfter(candidateStart));
+
+                boolean blocked = blockedSlotService.isSlotBlocked(tenantId, stylistId, candidateStart, candidateEnd);
+
+                if (!overlaps && !blocked) {
+                    availableSlots.add(slotStart);
+                }
+
+                slotStart = slotStart.plusMinutes(30);
+            }
+        }
+
+        return availableSlots;
     }
 
     private boolean validateAppointmentTime(Appointment appointment) {
@@ -240,6 +358,10 @@ public class AppointmentServiceImplement implements IAppointmentService {
     /** Validar si el estilista está disponible en ese horario */
     private boolean validateStylistAvailability(Appointment appointment) {
         Long stylistId = appointment.getStylist().getId();
+        Long tenantId = appointment.getTenant() != null ? appointment.getTenant().getId() : null;
+        if (tenantId == null) {
+            return false;
+        }
         LocalDateTime startDate = appointment.getStartDate();
         LocalDateTime endDate = appointment.getEndDate();
         DayOfWeek day = startDate.getDayOfWeek();
@@ -247,7 +369,8 @@ public class AppointmentServiceImplement implements IAppointmentService {
         LocalTime endTime = endDate.toLocalTime().truncatedTo(ChronoUnit.SECONDS);
 
         // Obtener los horarios del estilista para ese día
-        List<StylistSchedule> schedules = stylistScheduleRepository.findByStylistIdAndDay(stylistId, day);
+        List<StylistSchedule> schedules = stylistScheduleRepository
+                .findByStylistIdAndDayAndTenantId(stylistId, day, tenantId);
 
         // Validar si el estilista tiene un horario disponible que cubra la cita
         boolean isWithinSchedule = schedules.stream().anyMatch(schedule ->
@@ -256,18 +379,16 @@ public class AppointmentServiceImplement implements IAppointmentService {
         );
 
         if (!isWithinSchedule) {
-           System.out.println("Estilista no disponible en este horario.");
             return false;
         }
 
         // Verificar que no haya otra cita en ese horario
-        boolean hasConflict = appointmentRepository.existsOverlappingAppointment(stylistId, startDate, endDate);
+        boolean hasConflict = appointmentRepository.existsOverlappingAppointment(stylistId, tenantId, startDate, endDate);
 
-        if (hasConflict) {
-            System.out.println("El estilista ya tiene una cita en este horario.");
-        }
+        // Verificar que el horario no esté bloqueado
+        boolean blocked = blockedSlotService.isSlotBlocked(tenantId, stylistId, startDate, endDate);
 
-        return !hasConflict;
+        return !hasConflict && !blocked;
     }
 
 }

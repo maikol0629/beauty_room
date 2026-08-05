@@ -2,19 +2,18 @@ package com.mr.sb.beauty_room.Services.implement;
 
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceSaveDto;
+import com.mr.sb.beauty_room.Security.TenantInterceptor;
 import com.mr.sb.beauty_room.Services.IServiceService;
 import com.mr.sb.beauty_room.entities.Service;
 import com.mr.sb.beauty_room.entities.Stylist;
+import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.ServiceRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.Duration;
-import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -27,8 +26,8 @@ public class ServiceServiceImplement implements IServiceService {
 
     @Override
     public List<ServiceResponseDto> findAll() {
-
-        Iterable<Service> services = serviceRepository.findAll();
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Iterable<Service> services = serviceRepository.findByTenantId(tenantId);
 
         return StreamSupport.stream(services.spliterator(),false).map(
                 service -> ServiceResponseDto.builder()
@@ -44,11 +43,11 @@ public class ServiceServiceImplement implements IServiceService {
 
     @Override
     public ServiceResponseDto findById(long id) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Service> optService = serviceRepository.findByIdAndTenantId(id, tenantId);
 
-        if(serviceRepository.findById(id).isPresent()){
-
-            Service service = serviceRepository.findById(id).get();
-
+        if (optService.isPresent()) {
+            Service service = optService.get();
 
             return ServiceResponseDto.builder()
                     .idService(service.getId())
@@ -64,41 +63,49 @@ public class ServiceServiceImplement implements IServiceService {
 
     @Override
     public List<ServiceResponseDto> findByStylystId(Long id) {
-
-        if(!serviceRepository.findServicesStylistId(id).isEmpty()){
-
-            List<Service> services = serviceRepository.findServicesStylistId(id);
-
-            return services.stream().map(
-                    service -> ServiceResponseDto.builder()
-                            .idService(service.getId())
-                            .price(service.getPrice())
-                            .name(service.getName_service())
-                            .description(service.getDescription())
-                            .id_stylist(service.getStylist().getId())
-                            .build()
-            ).collect(Collectors.toList());
-
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        List<Service> services = serviceRepository.findServicesStylistId(id, tenantId);
+        if (services.isEmpty()) {
+            return java.util.Collections.emptyList();
         }
-        return null;
+
+        return services.stream()
+                .map(service -> ServiceResponseDto.builder()
+                        .idService(service.getId())
+                        .price(service.getPrice())
+                        .name(service.getName_service())
+                        .description(service.getDescription())
+                        .id_stylist(service.getStylist().getId())
+                        .build()
+                )
+                .collect(Collectors.toList());
     }
 
     @Transactional
     @Override
     public void save(ServiceSaveDto serviceSaveDto) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
 
-        Optional<Stylist> optionalStylist = stylistRepository.findById(serviceSaveDto.getId_stylist());
+        Long stylistId = Objects.requireNonNull(
+                serviceSaveDto.getId_stylist(),
+                "Stylist id is required"
+        );
 
-        if (optionalStylist.isPresent()) {
-            Service service = Service.builder()
-                    .name_service(serviceSaveDto.getName())
-                    .description(serviceSaveDto.getDescription())
-                    .stylist(optionalStylist.get())
-                    .price(serviceSaveDto.getPrice())
-                    .duration((int) serviceSaveDto.getDuration())
-                    .build();
-            serviceRepository.save(service);
-        }
+        Stylist stylist = stylistRepository.findByIdAndTenantId(stylistId, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Stylist not found for id: " + stylistId
+                ));
+
+        Service service = Service.builder()
+                .name_service(serviceSaveDto.getName())
+                .description(serviceSaveDto.getDescription())
+                .stylist(stylist)
+                .price(serviceSaveDto.getPrice())
+                .duration((int) serviceSaveDto.getDuration())
+                .tenant(Tenant.builder().id(tenantId).build())
+                .build();
+
+        serviceRepository.save(service);
     }
 
 
@@ -107,8 +114,8 @@ public class ServiceServiceImplement implements IServiceService {
 
     @Override
     public boolean deleteById(long id) {
-
-        Optional<Service> service = serviceRepository.findById(id);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Service> service = serviceRepository.findByIdAndTenantId(id, tenantId);
 
         if(service.isPresent()){
             serviceRepository.deleteById(id);
@@ -120,36 +127,32 @@ public class ServiceServiceImplement implements IServiceService {
 
     @Override
     public boolean update(ServiceSaveDto serviceSaveDto, long id) {
-        Optional<Service> service = serviceRepository.findById(id);
-        if(service.isPresent()){
-
-            serviceRepository.save(
-                    Service.builder()
-                            .duration((int)(serviceSaveDto.getDuration()))
-                            .price(serviceSaveDto.getPrice())
-                            .name_service(serviceSaveDto.getName())
-                            .description(serviceSaveDto.getDescription())
-                            .build()
-
-            );
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Service> optionalService = serviceRepository.findByIdAndTenantId(id, tenantId);
+        if (optionalService.isPresent()) {
+            Service service = optionalService.get();
+            service.setDuration((int) serviceSaveDto.getDuration());
+            service.setPrice(serviceSaveDto.getPrice());
+            service.setName_service(serviceSaveDto.getName());
+            service.setDescription(serviceSaveDto.getDescription());
+            serviceRepository.save(service);
             return true;
-
         }
         return false;
-
-
     }
 
     @Override
     public boolean isExistService(long id) {
-        return serviceRepository.findById(id).isPresent();
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return serviceRepository.findByIdAndTenantId(id, tenantId).isPresent();
     }
 
     @Override
     public boolean serviceBelongToStylyst(long stylystId, long serviceId) {
-        List<Service> list = serviceRepository.findServicesStylistId(stylystId);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        List<Service> list = serviceRepository.findServicesStylistId(stylystId, tenantId);
         boolean flag;
-        flag = list.contains(serviceRepository.findById(serviceId).get());
+        flag = list.contains(serviceRepository.findByIdAndTenantId(serviceId, tenantId).get());
         return flag;
     }
 }

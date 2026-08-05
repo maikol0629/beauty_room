@@ -2,10 +2,8 @@ package com.mr.sb.beauty_room.Services;
 
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceSaveDto;
-import com.mr.sb.beauty_room.entities.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface IServiceService {
     List<ServiceResponseDto> findAll();

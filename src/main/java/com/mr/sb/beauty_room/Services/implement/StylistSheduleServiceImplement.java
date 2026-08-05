@@ -1,8 +1,10 @@
 package com.mr.sb.beauty_room.Services.implement;
 
+import com.mr.sb.beauty_room.Security.TenantInterceptor;
 import com.mr.sb.beauty_room.Services.IStylistScheduleService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.StylistSchedule;
+import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
 import jakarta.transaction.Transactional;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class StylistSheduleServiceImplement implements IStylistScheduleService {
@@ -19,7 +22,7 @@ public class StylistSheduleServiceImplement implements IStylistScheduleService {
     private final StylistRepository stylistRepository;
 
 
-@Autowired
+
  public StylistSheduleServiceImplement(StylistScheduleRepository stylistScheduleRepository, StylistRepository stylistRepository) {
         this.stylistScheduleRepository = stylistScheduleRepository;
         this.stylistRepository = stylistRepository;
@@ -27,20 +30,59 @@ public class StylistSheduleServiceImplement implements IStylistScheduleService {
 
     @Override
     public List<StylistSchedule> findScheduleByStylistId(long stylistId) {
-        return stylistScheduleRepository.findByStylistId(stylistId);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return stylistScheduleRepository.findByStylistIdAndTenantId(stylistId, tenantId);
     }
+
+    @Override
+    public Optional<StylistSchedule> findScheduleById(long scheduleId) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return stylistScheduleRepository.findByIdAndTenantId(scheduleId, tenantId);
+    }
+
     @Transactional
     @Override
     public boolean saveStylistSchedule(StylistSchedule schedule) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
         validateTime(schedule.getStartTime(), schedule.getEndTime());
-        validateOverlap(schedule);
+        validateOverlap(schedule, tenantId);
 
-        Stylist stylist = stylistRepository.findById(schedule.getStylist().getId())
+        Stylist stylist = stylistRepository.findByIdAndTenantId(schedule.getStylist().getId(), tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Stylist no encontrado"));
 
         schedule.setStylist(stylist);
+        schedule.setTenant(Tenant.builder().id(tenantId).build());
         stylistScheduleRepository.save(schedule);
         return true;
+    }
+
+    @Transactional
+    @Override
+    public boolean updateStylistSchedule(Long scheduleId, StylistSchedule updated) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<StylistSchedule> existing = stylistScheduleRepository.findByIdAndTenantId(scheduleId, tenantId);
+        if (existing.isEmpty()) {
+            return false;
+        }
+        StylistSchedule schedule = existing.get();
+        schedule.setDay(updated.getDay());
+        schedule.setStartTime(updated.getStartTime());
+        schedule.setEndTime(updated.getEndTime());
+        validateTime(schedule.getStartTime(), schedule.getEndTime());
+        validateOverlap(schedule, tenantId);
+        stylistScheduleRepository.save(schedule);
+        return true;
+    }
+
+    @Transactional
+    @Override
+    public boolean deleteStylistSchedule(Long scheduleId) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        if (stylistScheduleRepository.findByIdAndTenantId(scheduleId, tenantId).isPresent()) {
+            stylistScheduleRepository.deleteById(scheduleId);
+            return true;
+        }
+        return false;
     }
 
     private void validateTime(LocalTime startTime, LocalTime endTime) {
@@ -52,11 +94,12 @@ public class StylistSheduleServiceImplement implements IStylistScheduleService {
         }
     }
 
-    private void validateOverlap(StylistSchedule schedule) {
-        List<StylistSchedule> existingSchedules = stylistScheduleRepository.findByStylistIdAndDay(
-                schedule.getStylist().getId(), schedule.getDay());
+    private void validateOverlap(StylistSchedule schedule, Long tenantId) {
+        List<StylistSchedule> existingSchedules = stylistScheduleRepository.findByStylistIdAndDayAndTenantId(
+                schedule.getStylist().getId(), schedule.getDay(), tenantId);
 
         boolean overlaps = existingSchedules.stream().anyMatch(existing ->
+                !existing.getId().equals(schedule.getId()) &&
                 schedule.getStartTime().isBefore(existing.getEndTime()) &&
                         schedule.getEndTime().isAfter(existing.getStartTime()));
 

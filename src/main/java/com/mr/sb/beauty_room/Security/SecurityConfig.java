@@ -1,6 +1,5 @@
 package com.mr.sb.beauty_room.Security;
 
-import com.mr.sb.beauty_room.Services.Auth.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,9 +31,18 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/client/**","api/appointment/findByClientId/","api/appointment/save","api/appointment/update/").hasRole("CLIENT")
-                .requestMatchers("/api/stylist/**","/api/service/**","api/appointment/save/**","api/appointment/update/**","api/appointment/findByStylistId/**").hasRole("STYLIST")
+            .requestMatchers(
+                "/api/auth/**",
+                "/api/stylist/public",
+                "/api/service/public",
+                "/api/appointment/availability",
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
+            ).permitAll()
+            .requestMatchers(
+                "/api/client/register"
+            ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

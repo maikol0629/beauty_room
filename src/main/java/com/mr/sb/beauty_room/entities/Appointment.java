@@ -9,8 +9,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-
 
 @Data
 @Entity
@@ -25,6 +23,10 @@ public class Appointment {
 
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private AppointmentStatus status = AppointmentStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_client",  nullable = false)
@@ -41,6 +43,9 @@ public class Appointment {
     @JsonBackReference
     private Service service;
 
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    @JsonIgnore
+    private Tenant tenant;
 
 }

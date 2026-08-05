@@ -6,9 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.DayOfWeek;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StylistScheduleRepository extends CrudRepository<StylistSchedule, Long> {
-    List<StylistSchedule> findByStylistId(Long id);
-    List<StylistSchedule> findByStylistIdAndDay(Long stylistId, DayOfWeek day);
+    List<StylistSchedule> findByStylistIdAndTenantId(Long id, Long tenantId);
+    List<StylistSchedule> findByStylistIdAndDayAndTenantId(Long stylistId, DayOfWeek day, Long tenantId);
+    Optional<StylistSchedule> findByIdAndTenantId(Long id, Long tenantId);
 }

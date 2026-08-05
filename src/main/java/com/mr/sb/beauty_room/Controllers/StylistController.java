@@ -1,9 +1,10 @@
 package com.mr.sb.beauty_room.Controllers;
 
 import com.mr.sb.beauty_room.DTOS.Auth.RegisterRequest;
-import com.mr.sb.beauty_room.entities.Stylist;
-import com.mr.sb.beauty_room.repository.StylistRepository;
+import com.mr.sb.beauty_room.DTOS.stylist.StylistResponseDto;
+import com.mr.sb.beauty_room.DTOS.stylist.StylistSaveDto;
 import com.mr.sb.beauty_room.Services.Auth.AuthenticationService;
+import com.mr.sb.beauty_room.Services.IStylistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +17,7 @@ import java.util.List;
 @RequestMapping("/api/stylist")
 @RequiredArgsConstructor
 public class StylistController {
-
-    private final StylistRepository stylistRepository;
+    private final IStylistService stylistService;
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
@@ -26,31 +26,46 @@ public class StylistController {
         return ResponseEntity.ok(authenticationService.registerStylist(request));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<List<StylistResponseDto>> getAllStylistsPublic() {
+        return ResponseEntity.ok(stylistService.findAll());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
-    public ResponseEntity<Stylist> getStylistById(@PathVariable Long id) {
-        return stylistRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<StylistResponseDto> getStylistById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        StylistResponseDto stylist = stylistService.findById(id);
+        if (stylist == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(stylist);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
-    public ResponseEntity<List<Stylist>> getAllStylists() {
-        return ResponseEntity.ok(stylistRepository.findAll());
+    public ResponseEntity<List<StylistResponseDto>> getAllStylists() {
+        return ResponseEntity.ok(stylistService.findAll());
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
-    public ResponseEntity<Stylist> updateStylist(
+    public ResponseEntity<StylistResponseDto> updateStylist(
             @PathVariable Long id,
-            @Valid @RequestBody Stylist stylistDetails) {
-        return stylistRepository.findById(id)
-                .map(existingStylist -> {
-                    existingStylist.setName_stylist(stylistDetails.getName_stylist());
-                    existingStylist.setPhone(stylistDetails.getPhone());
-                    return ResponseEntity.ok(stylistRepository.save(existingStylist));
-                })
-                .orElse(ResponseEntity.notFound().build());
+            @Valid @RequestBody StylistSaveDto stylistDetails) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        boolean updated = stylistService.update(stylistDetails, id);
+        if (!updated) {
+            return ResponseEntity.notFound().build();
+        }
+        StylistResponseDto updatedStylist = stylistService.findById(id);
+        if (updatedStylist == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updatedStylist);
     }
 }

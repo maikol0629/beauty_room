@@ -1,6 +1,7 @@
 package com.mr.sb.beauty_room.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,5 +33,10 @@ public class StylistSchedule {
 
         private LocalTime startTime;
         private LocalTime endTime;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "tenant_id", nullable = false)
+        @JsonIgnore
+        private Tenant tenant;
 
 }

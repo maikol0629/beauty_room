@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import java.time.LocalDateTime;
 
 
@@ -22,6 +23,7 @@ public class AppointmentResponseDto {
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;
+    private AppointmentStatus status;
     private ClientResponseDto client;
 
     private StylistResponseDto stylist;

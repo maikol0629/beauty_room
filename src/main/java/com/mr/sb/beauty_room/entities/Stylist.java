@@ -23,10 +23,12 @@ public class Stylist extends User {
 
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
+    @Builder.Default
     private List<StylistSchedule> stylistSchedules = new ArrayList<>();
 
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @Builder.Default
     private List<Service> services = new ArrayList<>();
 
     @ManyToOne

@@ -4,15 +4,14 @@ package com.mr.sb.beauty_room.Controllers;
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceSaveDto;
 import com.mr.sb.beauty_room.Services.IServiceService;
-import com.mr.sb.beauty_room.entities.Service;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.net.URISyntaxException;
+
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/service")
@@ -21,6 +20,10 @@ public class ServiceController {
     @Autowired
     private IServiceService serviceService;
 
+    @GetMapping("/public")
+    public ResponseEntity<?> findAllPublic() {
+        return ResponseEntity.ok(serviceService.findAll());
+    }
 
     @GetMapping("/findAll")
     public ResponseEntity<?> findAll() {
@@ -43,9 +46,9 @@ public class ServiceController {
 
 
     @PostMapping("/save")
-    public ResponseEntity<?> save(@RequestBody ServiceSaveDto serviceSaveDto)  {
+    public ResponseEntity<?> save(@Valid @RequestBody ServiceSaveDto serviceSaveDto)  {
         serviceService.save(serviceSaveDto);
-       return ResponseEntity.created(URI.create("/api/service/save")).build();
+        return ResponseEntity.created(URI.create("/api/service/save")).build();
     }
 
 
@@ -61,7 +64,7 @@ public class ServiceController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> update(@PathVariable long id, @RequestBody ServiceSaveDto serviceSaveDto){
+    public ResponseEntity<?> update(@PathVariable long id, @Valid @RequestBody ServiceSaveDto serviceSaveDto){
 
 
         if(serviceService.update(serviceSaveDto,id)){

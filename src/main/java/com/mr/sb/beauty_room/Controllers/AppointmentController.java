@@ -4,10 +4,17 @@ package com.mr.sb.beauty_room.Controllers;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentResponseDto;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentSaveDto;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
+import com.mr.sb.beauty_room.entities.AppointmentStatus;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +27,7 @@ public class AppointmentController {
 
 
     @GetMapping("/findById/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> findAppointmentById(@PathVariable long id) {
 
         Optional<AppointmentResponseDto> OpAppointment = appointmentService.findById(id);
@@ -35,14 +43,15 @@ public class AppointmentController {
 
 
     @GetMapping("/findByStylistId/{id}")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
     public ResponseEntity<?> findAppointmentByStylistId(@PathVariable long id) {
-        System.out.println(id);
         List<AppointmentResponseDto> optionalAppointments = appointmentService.findAppointmentsByStylistID(id);
 
         return ResponseEntity.ok(optionalAppointments);
     }
 
     @GetMapping("/findByClientId/{id}")
+    @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
     public ResponseEntity<?> findAppointmentByClientId(@PathVariable long id) {
 
         List<AppointmentResponseDto> optionalAppointments = appointmentService.findAppointmentsByClientID(id);
@@ -52,6 +61,7 @@ public class AppointmentController {
 
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteAppointment(@PathVariable long id) {
 
         if(appointmentService.deleteById(id)){
@@ -62,7 +72,8 @@ public class AppointmentController {
 
 
     @PutMapping("update/{id}")
-    public ResponseEntity<?> updateAppointment(@PathVariable long id, @RequestBody AppointmentSaveDto appointmentSaveDto) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateAppointment(@PathVariable long id, @Valid @RequestBody AppointmentSaveDto appointmentSaveDto) {
 
         if(appointmentService.update(appointmentSaveDto, id)){
             return ResponseEntity.ok().build();
@@ -71,17 +82,71 @@ public class AppointmentController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<?> saveAppointment(@RequestBody AppointmentSaveDto appointmentSaveDto) {
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<?> saveAppointment(@Valid @RequestBody AppointmentSaveDto appointmentSaveDto) {
 
-        if(appointmentSaveDto != null){
-           if(appointmentService.save(appointmentSaveDto)){
-               return ResponseEntity.ok().build();
-           }
-
+        if(appointmentService.save(appointmentSaveDto)){
+            return ResponseEntity.ok().build();
         }
-        return ResponseEntity.badRequest().build();
 
+        return ResponseEntity.badRequest().build();
     }
 
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
+    public ResponseEntity<?> confirmAppointment(@PathVariable long id) {
+        if (appointmentService.confirmAppointment(id)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
+    public ResponseEntity<?> rejectAppointment(@PathVariable long id) {
+        if (appointmentService.rejectAppointment(id)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('CLIENT', 'STYLIST', 'ADMIN')")
+    public ResponseEntity<?> cancelAppointment(@PathVariable long id) {
+        if (appointmentService.cancelAppointment(id)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
+    public ResponseEntity<?> completeAppointment(@PathVariable long id) {
+        if (appointmentService.completeAppointment(id)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/history")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
+    public ResponseEntity<List<AppointmentResponseDto>> getAppointmentHistory(
+            @RequestParam(required = false) Long stylistId,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) AppointmentStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(
+                appointmentService.findAppointmentsByFilters(stylistId, clientId, status, from, to));
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<?> getAvailability(
+            @RequestParam Long stylistId,
+            @RequestParam Long serviceId,
+            @RequestParam LocalDate date) {
+        List<LocalTime> slots = appointmentService.getAvailableSlots(stylistId, serviceId, date);
+        return ResponseEntity.ok(slots);
+    }
 
 }

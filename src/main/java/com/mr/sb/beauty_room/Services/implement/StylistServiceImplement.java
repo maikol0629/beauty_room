@@ -2,8 +2,10 @@ package com.mr.sb.beauty_room.Services.implement;
 
 import com.mr.sb.beauty_room.DTOS.stylist.StylistResponseDto;
 import com.mr.sb.beauty_room.DTOS.stylist.StylistSaveDto;
+import com.mr.sb.beauty_room.Security.TenantInterceptor;
 import com.mr.sb.beauty_room.Services.IStylistService;
 import com.mr.sb.beauty_room.entities.Stylist;
+import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,8 @@ public class StylistServiceImplement implements IStylistService {
 
     @Override
     public List<StylistResponseDto> findAll() {
-        Iterable<Stylist> listStylist = stylistRepository.findAll();
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Iterable<Stylist> listStylist = stylistRepository.findByTenantId(tenantId);
 
         return StreamSupport.stream(listStylist.spliterator(),false).map(
 
@@ -38,8 +41,8 @@ public class StylistServiceImplement implements IStylistService {
 
     @Override
     public StylistResponseDto findById(long id) {
-
-        Optional<Stylist> opStylist = stylistRepository.findById(id);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Stylist> opStylist = stylistRepository.findByIdAndTenantId(id, tenantId);
 
         if(opStylist.isPresent()){
             Stylist stylist = opStylist.get();
@@ -60,25 +63,25 @@ public class StylistServiceImplement implements IStylistService {
 
     @Override
     public boolean save(StylistSaveDto stylistSaveDto) {
-
-        if (stylistSaveDto.isNotEmpty()){
-
-            Stylist stylist = Stylist.builder().name_stylist(stylistSaveDto.getName())
-                    .email(stylistSaveDto.getEmail())
-                    .phone(stylistSaveDto.getPhone())
-                    .build();
-            stylistRepository.save(stylist);
-            return true;
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        if (stylistSaveDto.getName() == null || stylistSaveDto.getName().isBlank()) {
+            return false;
         }
-        return false;
-
-
+        Stylist stylist = Stylist.builder()
+                .name_stylist(stylistSaveDto.getName())
+                .email(stylistSaveDto.getEmail())
+                .phone(stylistSaveDto.getPhone())
+                .tenant(Tenant.builder().id(tenantId).build())
+                .build();
+        stylistRepository.save(stylist);
+        return true;
     }
 
 
     @Override
     public boolean deleteById(long id) {
-        Optional<Stylist> stylist = stylistRepository.findById(id);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Stylist> stylist = stylistRepository.findByIdAndTenantId(id, tenantId);
 
         if(stylist.isPresent()){
 
@@ -93,7 +96,8 @@ public class StylistServiceImplement implements IStylistService {
 
     @Override
     public boolean update(StylistSaveDto stylistSaveDto, long id) {
-        Optional<Stylist> stylistOptional = stylistRepository.findById(id);
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Stylist> stylistOptional = stylistRepository.findByIdAndTenantId(id, tenantId);
 
         if(stylistOptional.isPresent()){
 
@@ -109,9 +113,8 @@ public class StylistServiceImplement implements IStylistService {
 
     @Override
     public boolean isExistStylist(long id) {
-        Optional<Stylist> stylistOptional = stylistRepository.findById(id);
-
-        return stylistOptional.isPresent();
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return stylistRepository.findByIdAndTenantId(id, tenantId).isPresent();
     }
 
 

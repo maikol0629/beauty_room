@@ -1,6 +1,5 @@
 package com.mr.sb.beauty_room.DTOS.service;
 
-import com.mr.sb.beauty_room.entities.Stylist;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
