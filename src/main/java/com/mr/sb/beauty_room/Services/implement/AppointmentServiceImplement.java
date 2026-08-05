@@ -5,6 +5,7 @@ import com.mr.sb.beauty_room.DTOS.appointments.AppointmentSaveDto;
 import com.mr.sb.beauty_room.DTOS.client.ClientResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.stylist.StylistResponseDto;
+import com.mr.sb.beauty_room.Exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
 import com.mr.sb.beauty_room.Security.TenantInterceptor;
 
@@ -106,10 +107,12 @@ public class AppointmentServiceImplement implements IAppointmentService {
                         .tenant(Tenant.builder().id(tenantId).build())
                         .build();
 
-                if (validateStylistAvailability(appointment) && validateAppointmentTime(appointment)) {
-                    appointmentRepository.save(appointment);
-                    return true;
+                if (!validateStylistAvailability(appointment) || !validateAppointmentTime(appointment)) {
+                    throw new AppointmentConflictException(
+                            "La franja horaria solicitada no está disponible para el estilista " + stylist.get().getId());
                 }
+                appointmentRepository.save(appointment);
+                return true;
             }
         }
         return false;

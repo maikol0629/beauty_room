@@ -32,8 +32,8 @@ Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en
 - `IBlockedSlotService.isSlotBlocked(Long tenantId, Long stylistId, ...)` recibe tenantId como primer parámetro.
 
 ## Contexto de producto (importante)
-- Proyecto en fase MVP. Multitenant (Fase 0) COMPLETADO. Bloqueante pendiente: bot de Telegram (Fases 2-3).
-- PRÓXIMA TAREA = Fase 1: seguir `CHECKLIST_FASE_1.md` (validar API REST con Postman, `telegram_chat_id` en `Client`, verificar `calculateAvailableSlots` y no-doble-booking vía API, Swagger).
+- Proyecto en fase MVP. Multitenant (Fase 0) COMPLETADO. API REST validada (Fase 1) COMPLETADA: slots, no-doble-booking 409, `telegram_chat_id` en `Client`, Swagger, Postman collection `beauty_room_MVP.postman_collection.json`, `AppointmentControllerE2ETest` (16 tests OK). Bloqueante pendiente: bot de Telegram (Fases 2-3).
+- PRÓXIMA TAREA = Fase 2: seguir `plan.md` (bot Telegram: dependencia `telegrambots-spring-boot-starter`, clase `TelegramBotService`, interfaz `MessagingChannel`, entidad `ConversationState`, endpoint webhook, mapping `telegram_chat_id` ↔ tenant).
 - Roadmap en `plan.md`; estado en `PROGRESS.md`; decisiones de arquitectura en `DECISION_LOG.md`. Léelos antes de cambios de arquitectura.
 - La skill `.opencode/skills/analista-senior/AS.md` sirve para auditorías/diagnóstico del estado del proyecto.
 - Trabajo activo en la rama `appmod/java-upgrade-20251218222941` (no en `main`).

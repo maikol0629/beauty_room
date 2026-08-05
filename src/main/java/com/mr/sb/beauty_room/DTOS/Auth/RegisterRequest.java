@@ -28,6 +28,9 @@ public class RegisterRequest {
     @NotBlank(message = "El teléfono es obligatorio")
     private String phone;
     
+    // Opcional: id de chat de Telegram para el cliente
+    private String telegram_chat_id;
+    
     // Campos específicos para Stylist
     private String name_stylist;
 } 

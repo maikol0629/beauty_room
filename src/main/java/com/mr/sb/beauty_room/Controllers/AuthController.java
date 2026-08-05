@@ -3,6 +3,8 @@ package com.mr.sb.beauty_room.Controllers;
 import com.mr.sb.beauty_room.DTOS.Auth.AuthenticationResponse;
 import com.mr.sb.beauty_room.DTOS.Auth.RegisterRequest;
 import com.mr.sb.beauty_room.Services.Auth.AuthenticationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,12 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth", description = "Registro, login y emisión de JWT (con claim tenantId)")
 public class
 AuthController {
 
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register/client")
+    @Operation(summary = "Registrar cliente",
+            description = "Registra un cliente. Requiere header X-Tenant-ID si no se envía JWT. Devuelve JWT con claim tenantId")
     public ResponseEntity<AuthenticationResponse> registerClient(
             @Valid @RequestBody RegisterRequest request
     ) {
@@ -27,6 +32,8 @@ AuthController {
     }
 
     @PostMapping("/register/stylist")
+    @Operation(summary = "Registrar estilista",
+            description = "Registra un estilista. Requiere header X-Tenant-ID si no se envía JWT. Devuelve JWT con claim tenantId")
     public ResponseEntity<AuthenticationResponse> registerStylist(
             @Valid @RequestBody RegisterRequest request
     ) {
@@ -34,6 +41,8 @@ AuthController {
     }
 
     @PostMapping("/authenticate")
+    @Operation(summary = "Autenticar usuario",
+            description = "Login con email+password. Devuelve JWT con claims userId, role y tenantId")
     public ResponseEntity<AuthenticationResponse> authenticate(
             @Valid @RequestBody com.mr.sb.beauty_room.DTOS.Auth.AuthenticationRequest request
     ) {

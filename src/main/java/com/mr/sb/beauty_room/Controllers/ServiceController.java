@@ -4,6 +4,8 @@ package com.mr.sb.beauty_room.Controllers;
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceSaveDto;
 import com.mr.sb.beauty_room.Services.IServiceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +17,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/service")
+@Tag(name = "Services", description = "Gestión de servicios")
 public class ServiceController {
 
     @Autowired
     private IServiceService serviceService;
 
     @GetMapping("/public")
+    @Operation(summary = "Listar servicios (público)",
+            description = "Lista los servicios del tenant. Requiere header X-Tenant-ID (sin JWT)")
     public ResponseEntity<?> findAllPublic() {
         return ResponseEntity.ok(serviceService.findAll());
     }

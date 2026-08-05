@@ -42,6 +42,7 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name_client(request.getName_client())
                 .phone(request.getPhone())
+                .telegram_chat_id(request.getTelegram_chat_id())
                 .tenant(tenant)
                 .build();
 

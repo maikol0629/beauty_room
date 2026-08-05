@@ -3,7 +3,52 @@
 **Objetivo:** Asegurar que el backend es robusto para soportar el bot de Telegram.  
 **Timeline estimado:** 1 semana  
 **Bloqueado por:** Fase 0 (Multitenant) ⛔  
-**Status:** 🟡 PARCIALMENTE COMPLETADA
+**Status:** 🟢 **COMPLETADA** (5 de agosto de 2026)
+
+---
+
+## 📌 Resumen de implementación (qué se hizo realmente)
+
+> Lo que ya existía se verificó y se documentó; lo que faltaba se implementó. Detalle:
+
+- **`getAvailableSlots(stylistId, serviceId, date)`** ya existía en `IAppointmentService` / `AppointmentServiceImplement` (equivalente funcional al `calculateAvailableSlots()` del checklist). Devuelve `List<LocalTime>` filtrando por schedule del estilista, citas existentes (sin `CANCELLED`) y bloqueos (`IBlockedSlotService.isSlotBlocked`).
+- **Endpoint público de slots:** se agregó `GET /api/appointment/slots` (alias de `/api/appointment/availability`) y se habilitó en `SecurityConfig`. Verificado: retorna la lista de franjas libres de 30 min.
+- **No-doble-booking:** `save()` ahora lanza `AppointmentConflictException` cuando la franja no está disponible → `GlobalExceptionHandler` devuelve **409 Conflict** con mensaje claro. Se corrigió la query `existsOverlappingAppointment` para **excluir `CANCELLED` y `REJECTED`** (antes una cita cancelada seguía bloqueando el slot). Verificado: cancelar libera el slot y permite re-agendar.
+- **`telegram_chat_id` en `Client`**: agregado el campo en la entidad, en `ClientResponseDto` (como `telegramChatId`), `ClientSaveDto` (`telegram_chat_id`) y `RegisterRequest` (`telegram_chat_id`, opcional). `AuthenticationService.registerClient` y `ClientServiceImplement` lo persisten/mapean. Repositorio: `findByTelegramChatId` y `findByTelegramChatIdAndTenantId` (con `@Query` explícita, porque el campo Java `telegram_chat_id` no se resuelve como `telegramChatId` en queries derivadas).
+- **Seed:** `import.sql` ahora siembra `telegram_chat_id` para alice (111111111) y bob (222222222).
+- **Swagger:** `springdoc-openapi-starter-webmvc-ui` (2.3.0) ya estaba en `pom.xml`. Se agregó `Config/OpenApiConfig.java` (metadata + esquema Bearer JWT) y anotaciones `@Tag`/`@Operation` en `AuthController`, `ClientController`, `StylistController`, `ServiceController` y `AppointmentController`. UI en `http://localhost:8080/swagger-ui.html` (redirige a `/swagger-ui/index.html`).
+- **Postman collection:** `beauty_room_MVP.postman_collection.json` en la raíz con los **endpoints reales** de la app (incluye headers `X-Tenant-ID`, script que guarda el JWT automáticamente, y caso "conflict esperado 409").
+- **Tests E2E:** `AppointmentControllerE2ETest` (`@SpringBootTest` + `@AutoConfigureMockMvc`, usa la MariaDB real): login real con alice → obtiene JWT → consulta slots → crea cita (200) → doble booking (409) → verifica que `/api/client/me` expone `telegramChatId`.
+
+### Verificación realizada
+- `./mvnw test`: **16 tests, 0 fallos** (14 de Fase 0 + 2 nuevos E2E).
+- Pruebas manuales con la app corriendo:
+  - `GET /api/appointment/slots?stylistId=1&serviceId=1&date=...` → lista de franjas. ✅
+  - `POST /api/appointment/save` (alice, tenant 1) → 200. ✅
+  - Segundo `POST` en el mismo slot → **409** `La franja horaria solicitada no está disponible para el estilista 1`. ✅
+  - Tras cancelar la cita → el slot vuelve a aparecer y se puede re-agendar. ✅
+  - `GET /api/client/me` → incluye `"telegramChatId": "111111111"`. ✅
+  - `GET /swagger-ui.html` → 302 a `/swagger-ui/index.html`; `/v3/api-docs` → 200. ✅
+
+---
+
+## ⚠️ Diferencias con el checklist original
+
+| Punto | Documentado | Implementado |
+|---|---|---|
+| Método de slots | `calculateAvailableSlots()` | `getAvailableSlots()` (mismo propósito) |
+| Path de slots | `/api/appointments/slots` | `/api/appointment/slots` (convención singular del repo) |
+| Doble booking | 409 vía excepción | ✅ igual (`AppointmentConflictException`) |
+| `telegram_chat_id` | `@Column(unique = true)` | `@Column(name = "telegram_chat_id")` sin unique (evita colisión entre tenants) |
+| Repo por telegram | queries derivadas | `@Query` explícita (campo snake_case) |
+| `isTimeSlotAvailable()` | método público | lógica en `validateStylistAvailability()` (privado) + `existsOverlappingAppointment` |
+| E2E save | `jsonPath("$.status")=PENDING` | el controller devuelve 200 con body vacío; se aserta status 200 |
+
+---
+
+## Checklist original (marcado)
+
+<!-- El contenido original del checklist está más abajo, ahora marcado. -->
 
 ---
 
@@ -567,42 +612,42 @@ public class AppointmentController {
 
 ## Orden de ejecución
 
-1. [ ] Verificar que `IAppointmentService` existe con interface completa
-2. [ ] Implementar `calculateAvailableSlots()` en `AppointmentServiceImplement`
-3. [ ] Implementar `isTimeSlotAvailable()` en `AppointmentServiceImplement`
-4. [ ] Agregar queries en `AppointmentRepository` y `BlockedSlotRepository`
-5. [ ] Agregar endpoint GET `/api/appointments/slots` en `AppointmentController`
-6. [ ] Verificar validación de no-doble-booking en `.save()`
-7. [ ] Agregar campo `telegram_chat_id` en entidad `Client`
-8. [ ] Agregar métodos en `ClientRepository` para buscar por telegram_chat_id
-9. [ ] Crear Collection de Postman
-10. [ ] Ejecutar tests en Postman:
-    - [ ] Login → obtener JWT
-    - [ ] GET `/api/stylists` → ver estilistas
-    - [ ] GET `/api/services` → ver servicios
-    - [ ] GET `/api/appointments/slots?stylistId=X&serviceId=Y&date=Z` → ver slots
-    - [ ] POST `/api/appointments` → crear cita
-    - [ ] POST `/api/appointments` (mismo horario) → debe fallar con 409 Conflict
-11. [ ] Crear tests E2E
-12. [ ] Ejecutar tests
-13. [ ] Documentar en Swagger
+1. [x] Verificar que `IAppointmentService` existe con interface completa
+2. [x] Implementar `calculateAvailableSlots()` en `AppointmentServiceImplement` (ya existía como `getAvailableSlots`)
+3. [x] Implementar `isTimeSlotAvailable()` en `AppointmentServiceImplement` (lógica en `validateStylistAvailability`)
+4. [x] Agregar queries en `AppointmentRepository` y `BlockedSlotRepository`
+5. [x] Agregar endpoint GET `/api/appointments/slots` en `AppointmentController` (como `/api/appointment/slots`)
+6. [x] Verificar validación de no-doble-booking en `.save()`
+7. [x] Agregar campo `telegram_chat_id` en entidad `Client`
+8. [x] Agregar métodos en `ClientRepository` para buscar por telegram_chat_id
+9. [x] Crear Collection de Postman
+10. [x] Ejecutar tests en Postman:
+    - [x] Login → obtener JWT
+    - [x] GET `/api/stylists` → ver estilistas
+    - [x] GET `/api/services` → ver servicios
+    - [x] GET `/api/appointments/slots?stylistId=X&serviceId=Y&date=Z` → ver slots
+    - [x] POST `/api/appointments` → crear cita
+    - [x] POST `/api/appointments` (mismo horario) → debe fallar con 409 Conflict
+11. [x] Crear tests E2E
+12. [x] Ejecutar tests
+13. [x] Documentar en Swagger
 
 ---
 
 ## Checklist de verificación
 
-- [ ] Todos los endpoints CRUD listados abajo responden 200 OK:
-  - [ ] GET `/api/stylists`
-  - [ ] GET `/api/services`
-  - [ ] GET `/api/clients`
-  - [ ] GET `/api/appointments`
-  - [ ] GET `/api/appointments/slots`
-- [ ] Crear cita respeta disponibilidad (POST `/api/appointments` con overlap → 409)
-- [ ] Calcular slots retorna lista no vacía
-- [ ] Cliente se puede buscar por `telegram_chat_id`
-- [ ] JWT contiene informacion de tenant (después de Fase 0)
-- [ ] Swagger genera documentación en `http://localhost:8080/swagger-ui.html`
-- [ ] Tests E2E pasan
+- [x] Todos los endpoints CRUD listados abajo responden 200 OK:
+  - [x] GET `/api/stylist/public` (con X-Tenant-ID)
+  - [x] GET `/api/service/public` (con X-Tenant-ID)
+  - [x] GET `/api/client` (con JWT STYLIST)
+  - [x] GET `/api/appointment/findById/{id}` (con JWT)
+  - [x] GET `/api/appointment/slots` (con X-Tenant-ID)
+- [x] Crear cita respeta disponibilidad (POST `/api/appointment/save` con overlap → 409)
+- [x] Calcular slots retorna lista no vacía
+- [x] Cliente se puede buscar por `telegram_chat_id`
+- [x] JWT contiene informacion de tenant (Fase 0)
+- [x] Swagger genera documentación en `http://localhost:8080/swagger-ui.html`
+- [x] Tests E2E pasan
 
 ---
 

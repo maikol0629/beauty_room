@@ -5,6 +5,9 @@ import com.mr.sb.beauty_room.DTOS.appointments.AppointmentResponseDto;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentSaveDto;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,6 +23,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("api/appointment")
+@Tag(name = "Appointments", description = "Gestión de citas (CRUD, disponibilidad, estados)")
 public class AppointmentController {
 
     @Autowired
@@ -83,6 +87,7 @@ public class AppointmentController {
 
     @PostMapping("/save")
     @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Crear cita", description = "Crea una cita validando disponibilidad. Devuelve 409 si la franja ya está ocupada o bloqueada")
     public ResponseEntity<?> saveAppointment(@Valid @RequestBody AppointmentSaveDto appointmentSaveDto) {
 
         if(appointmentService.save(appointmentSaveDto)){
@@ -141,10 +146,23 @@ public class AppointmentController {
     }
 
     @GetMapping("/availability")
+    @Operation(summary = "Franjas horarias disponibles",
+            description = "Calcula los horarios libres de un estilista para un servicio en una fecha (endpoint público, requiere header X-Tenant-ID)")
     public ResponseEntity<?> getAvailability(
-            @RequestParam Long stylistId,
-            @RequestParam Long serviceId,
-            @RequestParam LocalDate date) {
+            @Parameter(description = "ID del estilista") @RequestParam Long stylistId,
+            @Parameter(description = "ID del servicio (para la duración)") @RequestParam Long serviceId,
+            @Parameter(description = "Fecha en formato YYYY-MM-DD") @RequestParam LocalDate date) {
+        List<LocalTime> slots = appointmentService.getAvailableSlots(stylistId, serviceId, date);
+        return ResponseEntity.ok(slots);
+    }
+
+    @GetMapping("/slots")
+    @Operation(summary = "Franjas horarias disponibles (alias)",
+            description = "Igual que /availability: horarios libres del estilista para un servicio en una fecha")
+    public ResponseEntity<?> getAvailableSlots(
+            @Parameter(description = "ID del estilista") @RequestParam Long stylistId,
+            @Parameter(description = "ID del servicio (para la duración)") @RequestParam Long serviceId,
+            @Parameter(description = "Fecha en formato YYYY-MM-DD") @RequestParam LocalDate date) {
         List<LocalTime> slots = appointmentService.getAvailableSlots(stylistId, serviceId, date);
         return ResponseEntity.ok(slots);
     }

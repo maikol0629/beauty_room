@@ -30,6 +30,7 @@ public class ClientServiceImplement implements IClientService {
                         .email(client.getEmail())
                         .phone(client.getPhone())
                         .name(client.getName_client())
+                        .telegramChatId(client.getTelegram_chat_id())
                         .appointments(client.getAppointments())
                         .build()
         ).toList();
@@ -48,6 +49,7 @@ public class ClientServiceImplement implements IClientService {
                     .email(client.getEmail())
                     .phone(client.getPhone())
                     .name(client.getName_client())
+                    .telegramChatId(client.getTelegram_chat_id())
                     .appointments(client.getAppointments())
                     .build();
 
@@ -65,6 +67,7 @@ public class ClientServiceImplement implements IClientService {
                 .name_client(clientSaveDto.getName())
                 .email(clientSaveDto.getEmail())
                 .phone(clientSaveDto.getPhone())
+                .telegram_chat_id(clientSaveDto.getTelegram_chat_id())
                 .tenant(Tenant.builder().id(tenantId).build())
                 .build();
         clientRepository.save(client);
@@ -95,6 +98,7 @@ public class ClientServiceImplement implements IClientService {
             client.setName_client(clientSaveDto.getName());
             client.setPhone(clientSaveDto.getPhone());
             client.setEmail(clientSaveDto.getEmail());
+            client.setTelegram_chat_id(clientSaveDto.getTelegram_chat_id());
 
             clientRepository.save(client);
             return true;

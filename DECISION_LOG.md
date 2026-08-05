@@ -1,10 +1,12 @@
 # 🏗️ Decisiones Arquitectónicas — Beauty Room MVP
 
-**Versión:** 1.1  
+**Versión:** 1.2  
 **Fecha:** 5 de agosto de 2026  
-**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Resto pendiente de fases futuras.
+**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fase 1 completada (validación API + telegram_chat_id + slots). Resto pendiente de fases futuras.
 
 > **Nota de implementación (5 de agosto de 2026):** las decisiones 1 (Shared DB/Schema), 2 (resolución por JWT + header), 3 (queries explícitas con tenant_id) y 4 (JWT simple con claim `tenantId`) quedaron implementadas en el código. Detalle de lo hecho y gotchas en [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md).
+>
+> **Fase 1 (mismo día):** API REST validada. Decisiones tomadas: (a) no-doble-booking devuelve **409 Conflict** vía `AppointmentConflictException` (reutilizando el GlobalExceptionHandler existente) en vez de un código de negocio; (b) las citas `CANCELLED`/`REJECTED` **no** bloquean slots (`existsOverlappingAppointment` los excluye); (c) el endpoint de disponibilidad se expuso como `GET /api/appointment/slots` público (alias de `/availability`) con resolución por header `X-Tenant-ID`; (d) el campo `telegram_chat_id` de `Client` mantiene snake_case en Java y se accede con `@Query` explícita (las queries derivadas `findByTelegramChatId...` no se generan bien); (e) documentación con SpringDoc 2.3.0 (UI en `/swagger-ui.html`). Detalle en [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md).
 
 ---
 
@@ -444,5 +446,5 @@ public class Notification {
 
 ---
 
-**Documento versión:** 1.1  
-**Próxima revisión:** Después de completar Fase 1
+**Documento versión:** 1.2  
+**Próxima revisión:** Después de completar Fase 2 (bot Telegram)

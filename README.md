@@ -8,14 +8,14 @@ Backend Spring Boot para agendamiento de citas en salones de belleza (SaaS multi
 
 ## 📊 Estado Actual del Proyecto
 
-**Progreso general:** 68% completado
+**Progreso general:** 70% completado
 
 ✅ **Backend creado (100%):** 10+ entidades, 10+ Controllers, autenticación JWT  
 ✅ **Multitenant (100%):** Fase 0 completada — entidad Tenant, aislamiento por tenant verificado  
+✅ **API REST validada (100%):** Fase 1 completada — slots, no-doble-booking 409, `telegram_chat_id`, Swagger, Postman collection, tests E2E  
 ❌ **Bot Telegram (0%):** BLOQUEANTE — core del producto  
-⚠️ **Validación API (50%):** Endpoints existen, requieren tests con Postman
 
-**Próximas 12 semanas:** Focus en Fases 1-3 (validación API + bot MVP)
+**Próximas 12 semanas:** Focus en Fases 2-3 (bot MVP)
 
 ---
 
@@ -36,9 +36,22 @@ Backend Spring Boot para agendamiento de citas en salones de belleza (SaaS multi
 1. **[plan.md](plan.md)** — Roadmap completo (13 fases, actualizado con estado real)
 2. **[PROGRESS.md](PROGRESS.md)** — Dashboard visual de progreso
 3. **[CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md)** — Guía de la implementación multitenant (COMPLETADA)
-4. **[CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md)** — Guía para validar API REST con Postman
+4. **[CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md)** — Guía de verificación API REST (COMPLETADA)
 5. **[DECISION_LOG.md](DECISION_LOG.md)** — Decisiones arquitectónicas explicadas
 6. **[RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md)** — Qué cambió en el plan original
+
+---
+
+## ✅ API REST validada (Fase 1 — COMPLETADA)
+
+El backend quedó validado y documentado el 5 de agosto de 2026:
+
+- **Disponibilidad:** `GET /api/appointment/slots?stylistId=X&serviceId=Y&date=YYYY-MM-DD` (público, header `X-Tenant-ID`) devuelve las franjas libres de 30 min.
+- **No-doble-booking:** `POST /api/appointment/save` devuelve **409 Conflict** si la franja está ocupada o bloqueada; las citas `CANCELLED`/`REJECTED` no bloquean el slot.
+- **`telegram_chat_id`:** nuevo campo en `Client` (entity + DTOs + registro), con `findByTelegramChatId` y `findByTelegramChatIdAndTenantId` en el repositorio.
+- **Swagger/OpenAPI:** UI en `http://localhost:8080/swagger-ui.html` con esquema Bearer JWT y `@Tag`/`@Operation` en los controllers.
+- **Postman:** collection `beauty_room_MVP.postman_collection.json` en la raíz.
+- **Tests:** 16 tests verdes (incluye `AppointmentControllerE2ETest`).
 
 ---
 
@@ -71,16 +84,16 @@ curl http://localhost:8080/api/stylist/public -H 'X-Tenant-ID: 1'
 
 ---
 
-## ✅ Cómo continuar (Fase 1)
+## ✅ Cómo continuar (Fase 2)
 
 ```bash
 # 1. Leer la documentación (30-60 min)
-# Orden: plan.md → PROGRESS.md → CHECKLIST_FASE_1.md
+# Orden: plan.md → PROGRESS.md → CHECKLIST_FASE_1.md (hecha) → plan.md Fase 2
 
-# 2. Validar la API REST con Postman (endpoints multitenant)
+# 2. Validar la API con Postman (opcional, collection ya creada)
+# Importar beauty_room_MVP.postman_collection.json
 
-# 3. Hacer commit
-git commit -m "FASE 0: Implementar multitenant"
+# 3. Fase 2: Bot Telegram (BotFather, webhook, FSM)
 ```
 
 ---

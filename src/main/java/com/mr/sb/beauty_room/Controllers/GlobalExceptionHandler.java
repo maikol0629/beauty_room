@@ -1,5 +1,6 @@
 package com.mr.sb.beauty_room.Controllers;
 
+import com.mr.sb.beauty_room.Exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.Exceptions.TenantNotResolvedException;
 import com.mr.sb.beauty_room.Exceptions.UserNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,6 +54,13 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("message", "Acceso denegado: no tienes permisos para realizar esta accion");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(AppointmentConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleAppointmentConflict(AppointmentConflictException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

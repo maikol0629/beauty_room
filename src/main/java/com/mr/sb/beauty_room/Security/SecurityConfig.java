@@ -36,6 +36,7 @@ public class SecurityConfig {
                 "/api/stylist/public",
                 "/api/service/public",
                 "/api/appointment/availability",
+                "/api/appointment/slots",
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
                 "/swagger-ui.html"

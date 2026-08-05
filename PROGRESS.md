@@ -1,21 +1,22 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
 **Actualizado:** 5 de agosto de 2026  
-**Próxima revisión:** Después de Fase 1
+**Próxima revisión:** Después de Fase 2-3
 
 ---
 
 ## 🎯 Progreso General del Proyecto
 
 ```
-███████████████████████████████░░░░░░░░░░░░░  (68% completado)
+███████████████████████████████░░░░░░░░░░░░░  (70% completado)
 
 ✅ Backend: 100% entidades creadas
 ✅ Autenticación: JWT implementado
 ✅ APIs: Controllers CRUD funcionales
 ✅ Multitenant: IMPLEMENTADO (Fase 0 completada)
+✅ API REST validada: slots, no-doble-booking 409, telegram_chat_id, Swagger (Fase 1)
 ❌ Bot Telegram: NO INICIADO (BLOQUEANTE)
-❌ Tests E2E: NO EXISTE
+❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
 ---
@@ -58,7 +59,7 @@ Estado: ✅ COMPLETADA (5 de agosto de 2026)
 Descripción: API REST robusta (slots, validación, sin bot)
 Timeline: 1 semana (después de Fase 0)
 Prioridad: 🔴 ALTA (necesario para bot)
-Estado: 🟡 PARCIALMENTE COMPLETADA
+Estado: ✅ COMPLETADA (5 de agosto de 2026)
 
 ┌─────────────────────────────────────────┐
 │ Status de Componentes:                  │
@@ -67,28 +68,29 @@ Estado: 🟡 PARCIALMENTE COMPLETADA
 │ ✅ Services (interfaces + implement)    │
 │ ✅ Controllers (CRUD)                   │
 │ ✅ Autenticación (JWT)                  │
-│ ❌ calculateAvailableSlots() - ?        │
-│ ❌ No-doble-booking validación - ?      │
-│ ❌ Endpoint GET /slots - NO             │
-│ ❌ telegram_chat_id en Client - NO      │
-│ ❌ Tests E2E con Postman - NO           │
-│ ❌ Swagger documentation - NO           │
+│ ✅ getAvailableSlots() (slots)          │
+│ ✅ No-doble-booking → 409 Conflict      │
+│ ✅ Endpoint GET /api/appointment/slots  │
+│ ✅ telegram_chat_id en Client           │
+│ ✅ Tests E2E (2 nuevos)                 │
+│ ✅ Swagger / OpenAPI                    │
 ├─────────────────────────────────────────┤
-│ Subtareas faltantes:                    │
-│ [ ] Verificar calculateAvailableSlots() │
-│ [ ] Implementar si falta                │
-│ [ ] Agregar telegram_chat_id            │
-│ [ ] Crear endpoint GET /slots           │
-│ [ ] Collection Postman                  │
-│ [ ] Tests E2E                           │
-│ [ ] Swagger setup                       │
+│ Subtareas completadas:                  │
+│ [x] Verificar calculateAvailableSlots() │
+│ [x] Implementar si falta                │
+│ [x] Agregar telegram_chat_id            │
+│ [x] Crear endpoint GET /slots           │
+│ [x] Collection Postman                  │
+│ [x] Tests E2E                           │
+│ [x] Swagger setup                       │
 ├─────────────────────────────────────────┤
-│ Entregable: API validada + documentada  │
+│ Entregable: API validada + documentada ✅
+│ Verificación: 16 tests OK + doble-booking 409 verificado vía API
 │ Bloqueante para: Fases 2-3              │
 └─────────────────────────────────────────┘
 ```
 
-**Documentación:** [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md)
+**Documentación:** [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) (incluye resumen de implementación y diferencias con el checklist)
 
 ---
 
@@ -271,7 +273,7 @@ Estado: ❌ NO INICIADA
 
 ```
 Semana 1-2:     ███░░░░░░░░░░░░░░░░░  FASE 0: Multitenant ✅
-Semana 3:       ░░░███░░░░░░░░░░░░░░  FASE 1: API REST
+Semana 3:       ░░░███░░░░░░░░░░░░░░  FASE 1: API REST ✅
 Semana 4-5:     ░░░░░██████░░░░░░░░░  FASE 2-3: Bot MVP
 Semana 6-7:     ░░░░░░░░░░██████░░░░  FASE 4-5: Flujos completos
 Semana 8-10:    ░░░░░░░░░░░░░░░░███░  FASE 6: Validación real
@@ -291,9 +293,9 @@ Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FA
 |---|---|---|---|
 | R1 | Sin multitenant → security issue | ✅ RESUELTO | Fase 0 completada, aislamiento verificado |
 | R2 | Bot no existe → no hay producto | 🔴 CRÍTICA | Timeline realista (4-5 sem) |
-| R3 | Doble-booking de citas | 🔴 CRÍTICA | Tests en Fase 1 |
+| R3 | Doble-booking de citas | ✅ RESUELTO | 409 Conflict + query excluye CANCELLED (F1) |
 | R4 | JWT sin tenant_id → fácil de atacar | ✅ RESUELTO | JWT incluye `tenantId` claim (F0) |
-| R5 | Endpoints no validados | 🟡 ALTA | Postman collection (F1) |
+| R5 | Endpoints no validados | ✅ RESUELTO | Postman collection + tests E2E (F1) |
 | R6 | Estilistas no usan el bot | 🟡 ALTA | Validar en Fase 6 |
 | R7 | Escalabilidad de BD | 🟢 MEDIA | Fase 11, no es MVP |
 
@@ -328,14 +330,13 @@ Antes de empezar Fase 0 (completado):
 ## 🎯 Próximo Paso Inmediato
 
 ```
-1. Leer CHECKLIST_FASE_1.md (30 min)
-2. Validar API REST con Postman (endpoints multitenant)
-3. Agregar telegram_chat_id a Client
-4. Crear endpoint GET /slots
+1. Leer CHECKLIST_FASE_1.md (verificado) y plan.md Fase 2
+2. Importar beauty_room_MVP.postman_collection.json en Postman y ejecutar flujo E2E manual
+3. Fase 2: Bot Telegram — BotFather, webhook, FSM
 ```
 
 ---
 
 **Última actualización:** 5 de agosto de 2026 17:00 UTC  
 **Responsable:** Auditoría automática + Copilot  
-**Próximo review:** 19 de agosto de 2026 (después de Fase 1)
+**Próximo review:** Después de Fase 2-3

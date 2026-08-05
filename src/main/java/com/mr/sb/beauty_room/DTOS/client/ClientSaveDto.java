@@ -25,4 +25,6 @@ public class ClientSaveDto {
     @NotBlank
     @Size(min = 7, max = 20)
     private String phone;
+
+    private String telegram_chat_id;
 }

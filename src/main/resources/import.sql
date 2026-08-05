@@ -21,8 +21,8 @@ INSERT INTO stylist (id, name_stylist, phone, id_stylist_room) VALUES (1, 'John 
 INSERT INTO stylist (id, name_stylist, phone, id_stylist_room) VALUES (2, 'Jane Smith', '987654321', 2);
 
 -- Insertar en Client (usa el mismo id que users)
-INSERT INTO client (id, name_client, phone) VALUES (3, 'Alice Johnson', '5551234');
-INSERT INTO client (id, name_client, phone) VALUES (4, 'Bob Brown', '5555678');
+INSERT INTO client (id, name_client, phone, telegram_chat_id) VALUES (3, 'Alice Johnson', '5551234', '111111111');
+INSERT INTO client (id, name_client, phone, telegram_chat_id) VALUES (4, 'Bob Brown', '5555678', '222222222');
 
 -- Insertar en Service (relación ManyToOne con Stylist, ahora con tenant_id)
 INSERT INTO service (id, name_service, description, price, duration, id_stylist, tenant_id) VALUES (1, 'Haircut', 'Basic haircut', 15.99, 30, 1, 1);

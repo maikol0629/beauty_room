@@ -21,6 +21,7 @@ public interface AppointmentRepository extends CrudRepository<Appointment, Long>
 
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a " +
             "WHERE a.stylist.id = :stylistId AND a.tenant.id = :tenantId " +
+            "AND a.status <> 'CANCELLED' AND a.status <> 'REJECTED' " +
             "AND ( (a.startDate <= :startDate AND a.endDate > :startDate) " +
             "   OR (a.startDate < :endDate AND a.endDate >= :endDate) " +
             "   OR (a.startDate >= :startDate AND a.endDate <= :endDate) )")

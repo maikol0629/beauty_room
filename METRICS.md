@@ -2,7 +2,7 @@
 
 **Documento:** Seguimiento de salud del proyecto  
 **Actualizado:** 5 de agosto de 2026  
-**Próxima revisión:** Fin de Fase 1
+**Próxima revisión:** Fin de Fase 2-3
 
 ---
 
@@ -14,11 +14,11 @@
 |---|---|---|---|
 | Multitenant implementado | 100% | 100% | ✅ |
 | Security: tenant isolation verified | ✅ Test + CI | 14 tests + verificación manual cross-tenant | ✅ |
-| API endpoints validados | 10/10 | 0/10 | ❌ |
-| Endpoints con Postman collection | ✅ Collection | ❌ No existe | ❌ |
-| calculateAvailableSlots() implementado | ✅ Funcional | ✅ Implementado (en `AppointmentServiceImplement`) | ✅ |
-| No-doble-booking validado | ✅ Tests pass | ✅ Implementado (test `AppointmentRepositoryTests`) | ✅ |
-| Swagger documentation ready | ✅ Deployed | ❌ No existe | ❌ |
+| API endpoints validados | 10/10 | 10/10 (E2E + manual) | ✅ |
+| Endpoints con Postman collection | ✅ Collection | ✅ `beauty_room_MVP.postman_collection.json` | ✅ |
+| calculateAvailableSlots() implementado | ✅ Funcional | ✅ `getAvailableSlots` (endpoint `/slots`) | ✅ |
+| No-doble-booking validado | ✅ Tests pass | ✅ 409 Conflict + excluye CANCELLED | ✅ |
+| Swagger documentation ready | ✅ Deployed | ✅ `/swagger-ui.html` | ✅ |
 
 ---
 
@@ -68,6 +68,19 @@ Total esperado: ~27 horas (3.5 días full-time) — COMPLETADO
 ```
 
 ### Semana 3: FASE 1 (Verificación API)
+
+```
+Goal: API validada y documentada
+       [████████████████████]  100% (COMPLETADA — 5 de agosto de 2026)
+
+Historias completadas:
+- [x] getAvailableSlots() / endpoint /slots
+- [x] No-doble-booking → 409
+- [x] telegram_chat_id en Client
+- [x] Postman collection
+- [x] Tests E2E (AppointmentControllerE2ETest)
+- [x] Swagger / OpenAPI
+```
 
 ```
 Goal: 7 subtareas completadas
@@ -225,13 +238,13 @@ VERDE:
 
 ```
 FASE 0  █████████████████████  100% (Semana 1-2) ✅
-FASE 1  ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 3)
+FASE 1  █████████████████████  100% (Semana 3) ✅
 FASE 2-3░░░░░░░░░░░░░░░░░░░░░  0% (Semana 4-5)
 FASE 4-5░░░░░░░░░░░░░░░░░░░░░  0% (Semana 6-7)
 FASE 6  ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 8-10)
 FASE 7+ ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 11+)
 
-Total  ████░░░░░░░░░░░░░░░░░  16% de fases completadas
+Total  █████░░░░░░░░░░░░░░░░  23% de fases completadas
 ```
 
 ### Commits por semana
@@ -290,7 +303,7 @@ Tareas pendientes
 
 ## 📅 Próximas revisiones
 
-- **19 de agosto 2026** → Fin de Fase 1, validación API
+- **5 de agosto 2026** → ✅ Fin de Fase 1, API validada (COMPLETADA)
 - **2 de septiembre 2026** → Fin de Fase 2-3, MVP bot working
 - **16 de septiembre 2026** → Fin de Fase 6, validación usuarios reales
 
@@ -298,4 +311,4 @@ Tareas pendientes
 
 **Mantenedor:** Desarrollador solo  
 **Última actualización:** 5 de agosto 2026 17:00 UTC  
-**Próxima revisión:** Fin de Fase 1 (19 de agosto)
+**Próxima revisión:** Fin de Fase 2-3 (2 de septiembre)

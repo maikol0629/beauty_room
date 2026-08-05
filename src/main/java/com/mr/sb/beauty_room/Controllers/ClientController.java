@@ -6,6 +6,8 @@ import com.mr.sb.beauty_room.DTOS.client.ClientSaveDto;
 import com.mr.sb.beauty_room.Services.IClientService;
 import com.mr.sb.beauty_room.Services.Auth.AuthenticationService;
 import com.mr.sb.beauty_room.entities.Client;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +20,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/client")
 @RequiredArgsConstructor
+@Tag(name = "Clients", description = "Gestión de clientes (incluye telegram_chat_id)")
 public class ClientController {
     private final IClientService clientService;
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
+    @Operation(summary = "Registrar cliente", description = "Registra un nuevo cliente y devuelve JWT. Requiere header X-Tenant-ID")
     public ResponseEntity<?> registerClient(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authenticationService.registerClient(request));
     }

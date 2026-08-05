@@ -62,23 +62,23 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
    - ❌ No existe FSM conversacional
    - **Impacto:** Producto no es funcional sin el bot
 
-3. **Lógica de disponibilidad (Fase 1) — NECESARIO PARA BOT**
-   - ❌ Método `calculateAvailableSlots()` no verificado/implementado
-   - ❌ Validación de no-doble-booking no verificada
-   - ❌ Endpoint GET `/api/appointments/slots` probablemente no existe
-   - **Impacto:** Bot no puede mostrar horarios disponibles
+3. **Lógica de disponibilidad (Fase 1) — ✅ COMPLETADA (5 de agosto de 2026)**
+   - ✅ Método `getAvailableSlots(stylistId, serviceId, date)` implementado y expuesto en `GET /api/appointment/slots` (público con X-Tenant-ID)
+   - ✅ No-doble-booking verificado: `POST /api/appointment/save` → **409 Conflict** si el slot está ocupado; `CANCELLED`/`REJECTED` no bloquean
+   - **Impacto:** El bot ya puede mostrar horarios disponibles.
 
-4. **Campo en Client (Fase 1)**
-   - ❌ Campo `telegram_chat_id` en `Client` no existe
-   - **Impacto:** No se puede identificar clientes que escriben al bot
+4. **Campo en Client (Fase 1) — ✅ COMPLETADA (5 de agosto de 2026)**
+   - ✅ Campo `telegram_chat_id` en `Client` (entity + DTOs + registro)
+   - ✅ `ClientRepository.findByTelegramChatId` y `findByTelegramChatIdAndTenantId`
+   - **Impacto:** Ya se puede identificar clientes que escriben al bot.
 
 ---
 
 ### 🟡 PARCIALMENTE COMPLETADO
 
-- Endpoints CRUD existen pero no fueron validados vía Postman
-- Tests existen pero no cubren flujos E2E
-- Documentación en Swagger no existe aún
+- ~~Endpoints CRUD no validados~~ → ✅ VALIDADOS (E2E + Postman + manual)
+- ~~Tests sin flujos E2E~~ → ✅ `AppointmentControllerE2ETest` (2 tests E2E)
+- ~~Documentación en Swagger no existe~~ → ✅ `/swagger-ui.html` + `OpenApiConfig`
 
 ---
 
@@ -113,14 +113,14 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 
 ### 2. `CHECKLIST_FASE_1.md`
 **Guía para verificar que API REST es robusta:**
-- ✅ Collection de Postman para probar endpoints
-- ✅ Implementar `calculateAvailableSlots()`
-- ✅ Implementar validación de no-doble-booking
-- ✅ Agregar campo `telegram_chat_id` a Client
-- ✅ Tests end-to-end
+- ✅ Collection de Postman creada (`beauty_room_MVP.postman_collection.json`)
+- ✅ `calculateAvailableSlots()` implementado (endpoint `/slots`)
+- ✅ No-doble-booking implementado (409)
+- ✅ Campo `telegram_chat_id` agregado a Client
+- ✅ Tests end-to-end (`AppointmentControllerE2ETest`)
 - ✅ Swagger documentation
 
-**Incluye:** Postman collection JSON, código de ejemplo, queries, tests E2E, documentación.
+**Incluye:** Postman collection JSON, código de ejemplo, queries, tests E2E, documentación. **Estado: COMPLETADA (5 de agosto de 2026).**
 
 **Timeline:** 1 semana de implementación (después de Fase 0).
 
@@ -142,17 +142,17 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 
 ---
 
-### Semana 3: **FASE 1 — Verificar API REST**
+### Semana 3: **FASE 1 — Verificar API REST ✅ COMPLETADA (5 de agosto de 2026)**
 ```
-1. Implementar calculateAvailableSlots()
-2. Verificar no-doble-booking
-3. Agregar telegram_chat_id a Client
-4. Probar endpoints con Postman
-5. Crear tests E2E
-6. Documentar en Swagger
+1. ✅ Implementar getAvailableSlots() → endpoint /slots
+2. ✅ Verificar no-doble-booking → 409 Conflict
+3. ✅ Agregar telegram_chat_id a Client
+4. ✅ Probar endpoints con Postman (collection creada)
+5. ✅ Crear tests E2E (AppointmentControllerE2ETest)
+6. ✅ Documentar en Swagger (swagger-ui.html)
 ```
 
-**¿Por qué?** Necesitas backend robusto antes de construir bot.
+**¿Por qué?** Necesitas backend robusto antes de construir bot. — **Resultado: 16 tests OK, verificación manual vía API OK.**
 
 ---
 
@@ -175,18 +175,17 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 |---|---|---|
 | ~~Sin multitenant → un usuario ve datos de otro~~ | ✅ RESUELTO | Fase 0 completada, aislamiento verificado |
 | Bot no existe → no hay producto | 🔴 CRÍTICA | Timeline de 4-5 semanas realista |
-| Endpoints no validados → discovery de bugs tarde | 🟡 Alta | Usar CHECKLIST_FASE_1 + Postman |
+| ~~Endpoints no validados → discovery de bugs tarde~~ | ✅ RESUELTO | E2E + Postman + Swagger (FASE 1) |
 | ~~JWT sin tenant_id → fácil atacar otros tenants~~ | ✅ RESUELTO | JWT incluye `tenantId` (FASE 0) |
-| Sin calculateAvailableSlots() → bot puede double-book | 🔴 CRÍTICA | Verificar/implementar (FASE 1) |
+| ~~Sin calculateAvailableSlots() → bot puede double-book~~ | ✅ RESUELTO | 409 Conflict verificado (FASE 1) |
 
 ---
 
 ## 💡 Próximos pasos inmediatos
 
-1. **Leer** `CHECKLIST_FASE_1.md` completo
-2. **Validar** los endpoints multitenant con Postman (Fase 1)
-3. **Verificar** `calculateAvailableSlots()` y no-doble-booking vía API
-4. **Agregar** `telegram_chat_id` a `Client`
+1. **Importar** `beauty_room_MVP.postman_collection.json` en Postman (opcional, E2E ya cubierto)
+2. **Comenzar Fase 2:** Bot de Telegram (BotFather, webhook, `MessagingChannel`, FSM)
+3. **Configurar** el `telegram_chat_id` de clientes reales cuando el bot esté activo
 
 ---
 
@@ -203,11 +202,12 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 
 - [plan.md](plan.md) — Roadmap actualizado
 - [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md) — Guía implementación multitenant (COMPLETADA, con resumen de implementación)
-- [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) — Guía verificación API REST
+- [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) — Guía verificación API REST (COMPLETADA)
+- [beauty_room_MVP.postman_collection.json](beauty_room_MVP.postman_collection.json) — Collection Postman
 - [pom.xml](pom.xml) — Dependencias (Java 21, Spring Boot 3.2.3, MariaDB)
 - [src/main/resources/application.properties](src/main/resources/application.properties) — Config (MariaDB localhost)
 
 ---
 
 **Última actualización:** 5 de agosto de 2026  
-**Próxima auditoría recomendada:** Después de completar FASE 0
+**Próxima auditoría recomendada:** Después de completar FASE 2

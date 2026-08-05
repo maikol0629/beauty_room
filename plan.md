@@ -50,9 +50,9 @@
 ## FASE 1 — Modelo de datos completo (citas, servicios, clientes)
 *Objetivo: tener el dominio de negocio completo en base de datos, sin bot todavía. Esto es "solo backend".*
 
-**ESTADO ACTUAL:**
+**ESTADO ACTUAL: ✅ COMPLETADA (5 de agosto de 2026)**
 - ✅ `Stylist` (nombre, teléfono, id_stylist_room, role)
-- ✅ `Client` (nombre, teléfono, email, notas implícitas en Review/Appointment)
+- ✅ `Client` (nombre, teléfono, email, `telegram_chat_id`)
 - ✅ `Service` (nombre, duración en minutos, precio, descripción)
 - ✅ `StylistSchedule` (días laborales, horas inicio/fin, asociado a estilista)
 - ✅ `BlockedSlot` (bloqueos puntuales/recurrentes)
@@ -60,18 +60,14 @@
 - ✅ Controllers CRUD: `AppointmentController`, `ServiceController`, `ClientController`, `StylistScheduleController`, `BlockedSlotController`
 - ✅ Services: interfaces + implementaciones para toda la lógica
 - ✅ Validación de status en Appointment (PENDING, CONFIRMED, CANCELLED, COMPLETED)
-- ❌ **PENDIENTE:** Lógica de cálculo de slots disponibles (¿cómo encontrar franjas libres?)
-- ❌ **PENDIENTE:** Validación de solapamiento de citas (¿implementada pero no verificada?)
-- ❌ **PENDIENTE:** Campo `telegram_chat_id` en `Client` (será necesario para bot)
+- ✅ **Cálculo de slots:** `getAvailableSlots(stylistId, serviceId, date)` implementado y expuesto en `GET /api/appointment/slots` (público con X-Tenant-ID)
+- ✅ **No-doble-booking:** validado con `existsOverlappingAppointment` (excluye CANCELLED/REJECTED); `POST /api/appointment/save` devuelve **409 Conflict**
+- ✅ **`telegram_chat_id` en `Client`**: entity + DTOs (`telegramChatId`) + registro + `findByTelegramChatIdAndTenantId`
+- ✅ **Swagger/OpenAPI:** `springdoc-openapi-starter-webmvc-ui` + `OpenApiConfig` + `@Tag`/`@Operation`
+- ✅ **Postman collection:** `beauty_room_MVP.postman_collection.json` (endpoints reales)
+- ✅ **Tests E2E:** `AppointmentControllerE2ETest` (login real, slots, cita 200, doble booking 409, telegramChatId) — 16 tests, 0 fallos
 
-**Acciones requeridas:**
-1. [ ] Agregar campo `telegram_chat_id` a `Client`
-2. [ ] Verificar/implementar método `calculateAvailableSlots(estilista, servicio, fecha)` en `IAppointmentService`
-3. [ ] Verificar/implementar validación de no-doble-booking en `AppointmentServiceImplement`
-4. [ ] Crear tests unitarios para slots y validación de solapamiento
-5. [ ] Documentar/verificar los endpoints existentes con Postman (crear cita, validar disponibilidad, etc.)
-
-**Entregable de la fase:** API REST funcional donde, via Postman, podrías crear una cita respetando disponibilidad y sin choques de horario. No necesitas el bot ni el panel Angular todavía.
+**Entregable de la fase:** API REST funcional donde, via Postman, podrías crear una cita respetando disponibilidad y sin choques de horario. No necesitas el bot ni el panel Angular todavía. ✅
 
 ---
 
@@ -316,7 +312,7 @@
 | Fase | Foco | Estado | ¿Bloqueante? |
 |---|---|---|---|
 | 0 | Backend multitenant + Tenant entity | ✅ **COMPLETADA** | Sí, es la base |
-| 1 | API REST completa (slots, validación) | 🟡 Parcial | Sí, valida backend |
+| 1 | API REST completa (slots, validación) | ✅ **COMPLETADA** | Sí, valida backend |
 | 2 | Bot: esqueleto + webhook | ❌ No iniciada | Sí, es el core |
 | 3 | Bot: flujo de agendamiento | ❌ No iniciada | Sí, es el core |
 | 4 | Bot: flujo del estilista | ❌ No iniciada | Sí, completa el loop |
@@ -335,15 +331,15 @@
    - [x] Agregar `tenant_id` a todas las tablas
    - [x] Implementar `TenantInterceptor`
    - [x] Tests de aislamiento multitenant
-   - **Estado:** 14 tests OK, aislamiento verificado vía API. Siguiente: Fase 1.
+   - **Estado:** 14 tests OK, aislamiento verificado vía API.
 
-2. **LUEGO — Verificar Fase 1 (1 semana):**
-   - [ ] Revisar si `calculateAvailableSlots()` existe y funciona
-   - [ ] Revisar si validación de no-doble-booking está implementada
-   - [ ] Agregar campo `telegram_chat_id` a `Client`
-   - [ ] Tests end-to-end con Postman
-   - **Razón:** Necesitas backend robusto antes de construir el bot.
-   - **Nota:** la validación de no-doble-booking y el cálculo de slots YA existen en `AppointmentServiceImplement` (pasan tests); falta validarlos vía API y documentar.
+2. **LUEGO — Verificar Fase 1 (1 semana): ✅ COMPLETADA**
+   - [x] `getAvailableSlots()` funciona y expuesto en `GET /api/appointment/slots`
+   - [x] Validación de no-doble-booking implementada y verificada (409 Conflict)
+   - [x] Campo `telegram_chat_id` agregado a `Client`
+   - [x] Tests end-to-end (2 E2E nuevos) + Postman collection
+   - [x] Swagger documentado
+   - **Estado:** 16 tests OK; doble-booking → 409 verificado vía API.
 
 3. **FINALMENTE — Fase 2-3 (2-3 semanas):**
    - [ ] Setup bot Telegram + webhook

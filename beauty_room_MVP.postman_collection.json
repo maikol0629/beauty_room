@@ -1,0 +1,357 @@
+{
+  "info": {
+    "name": "Beauty Room MVP",
+    "description": "Colección de la API REST multitenant de Beauty Room. Variables: BASE_URL (default http://localhost:8080), JWT (token Bearer), X_TENANT_ID (id de tenant para endpoints públicos). Para autenticación protegida, usar el token que devuelve /api/auth/authenticate.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_client\": \"Cliente Nuevo\",\n  \"email\": \"cliente@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3001112233\",\n  \"telegram_chat_id\": \"999999999\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/auth/register/client", "path": ["api", "auth", "register", "client"]}
+          }
+        },
+        {
+          "name": "Register Stylist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_stylist\": \"Estilista Nuevo\",\n  \"email\": \"estilista@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3004445566\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/auth/register/stylist", "path": ["api", "auth", "register", "stylist"]}
+          }
+        },
+        {
+          "name": "Authenticate (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('JWT', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/auth/authenticate", "path": ["api", "auth", "authenticate"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stylists",
+      "item": [
+        {
+          "name": "List stylists public (X-Tenant-ID)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/stylist/public", "path": ["api", "stylist", "public"]}
+          }
+        },
+        {
+          "name": "Get stylist by id",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/stylist/1", "path": ["api", "stylist", "1"]}
+          }
+        },
+        {
+          "name": "List stylists (auth)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/stylist", "path": ["api", "stylist"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "List services public (X-Tenant-ID)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/service/public", "path": ["api", "service", "public"]}
+          }
+        },
+        {
+          "name": "List services (findAll)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/service/findAll", "path": ["api", "service", "findAll"]}
+          }
+        },
+        {
+          "name": "Get service by id",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/service/find/1", "path": ["api", "service", "find", "1"]}
+          }
+        },
+        {
+          "name": "List services by stylist",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/service/findByStylistId/1", "path": ["api", "service", "findByStylistId", "1"]}
+          }
+        },
+        {
+          "name": "Create service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_service\": \"Manicure\",\n  \"description\": \"Manicure basico\",\n  \"price\": 25.0,\n  \"duration\": 45,\n  \"id_stylist\": 1\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/service/save", "path": ["api", "service", "save"]}
+          }
+        },
+        {
+          "name": "Update service",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_service\": \"Manicure premium\",\n  \"description\": \"Manicure con esmaltado\",\n  \"price\": 35.0,\n  \"duration\": 60,\n  \"id_stylist\": 1\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/service/update/1", "path": ["api", "service", "update", "1"]}
+          }
+        },
+        {
+          "name": "Delete service",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/service/delete/1", "path": ["api", "service", "delete", "1"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Register client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_client\": \"Cliente Nuevo\",\n  \"email\": \"cliente2@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3002223344\",\n  \"telegram_chat_id\": \"888888888\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/client/register", "path": ["api", "client", "register"]}
+          }
+        },
+        {
+          "name": "Get my profile (CLIENT)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/client/me", "path": ["api", "client", "me"]}
+          }
+        },
+        {
+          "name": "List clients (STYLIST)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/client", "path": ["api", "client"]}
+          }
+        },
+        {
+          "name": "Update client (CLIENT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{JWT}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Johnson\",\n  \"email\": \"alice@example.com\",\n  \"phone\": \"5551234\",\n  \"telegram_chat_id\": \"111111111\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/client/3", "path": ["api", "client", "3"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Available slots (X-Tenant-ID)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Tenant-ID", "value": "{{X_TENANT_ID}}"}],
+            "url": {
+              "raw": "{{BASE_URL}}/api/appointment/slots?stylistId=1&serviceId=1&date=2026-08-10",
+              "query": [
+                {"key": "stylistId", "value": "1"},
+                {"key": "serviceId", "value": "1"},
+                {"key": "date", "value": "2026-08-10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get appointment by id",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/appointment/findById/1", "path": ["api", "appointment", "findById", "1"]}
+          }
+        },
+        {
+          "name": "Appointments by stylist",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/appointment/findByStylistId/1", "path": ["api", "appointment", "findByStylistId", "1"]}
+          }
+        },
+        {
+          "name": "Appointments by client",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/appointment/findByClientId/3", "path": ["api", "appointment", "findByClientId", "3"]}
+          }
+        },
+        {
+          "name": "Create appointment (CLIENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{JWT}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"id_client\": 3,\n  \"id_stylist\": 1,\n  \"id_service\": 1\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/appointment/save", "path": ["api", "appointment", "save"]}
+          }
+        },
+        {
+          "name": "Create appointment - conflict esperado 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{JWT}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"id_client\": 3,\n  \"id_stylist\": 1,\n  \"id_service\": 1\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/appointment/save", "path": ["api", "appointment", "save"]}
+          }
+        },
+        {
+          "name": "Confirm appointment (STYLIST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/appointment/1/confirm", "path": ["api", "appointment", "1", "confirm"]}
+          }
+        },
+        {
+          "name": "Cancel appointment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/appointment/1/cancel", "path": ["api", "appointment", "1", "cancel"]}
+          }
+        },
+        {
+          "name": "Appointment history (filters)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {
+              "raw": "{{BASE_URL}}/api/appointment/history?stylistId=1",
+              "query": [{"key": "stylistId", "value": "1"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "List schedules (STYLIST)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{JWT}}"}],
+            "url": {"raw": "{{BASE_URL}}/api/stylist/1/schedule", "path": ["api", "stylist", "1", "schedule"]}
+          }
+        },
+        {
+          "name": "Create schedule (STYLIST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{JWT}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day\": \"FRIDAY\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"18:00:00\"\n}"
+            },
+            "url": {"raw": "{{BASE_URL}}/api/stylist/1/schedule", "path": ["api", "stylist", "1", "schedule"]}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "BASE_URL", "value": "http://localhost:8080"},
+    {"key": "JWT", "value": ""},
+    {"key": "X_TENANT_ID", "value": "1"}
+  ]
+}
