@@ -33,6 +33,26 @@ public interface AppointmentRepository extends CrudRepository<Appointment, Long>
     List<Appointment> findByStylistIdAndStartDateBetweenAndStatusNotAndTenantId(
             Long stylistId, LocalDateTime start, LocalDateTime end, AppointmentStatus status, Long tenantId);
 
+    @Query("SELECT a FROM Appointment a WHERE a.tenant.id = :tenantId " +
+            "AND a.status IN :statuses " +
+            "AND a.startDate >= :from AND a.startDate <= :to " +
+            "AND a.client.telegram_chat_id IS NOT NULL AND a.client.telegram_chat_id <> ''")
+    List<Appointment> findRemindable(
+            @Param("tenantId") Long tenantId,
+            @Param("statuses") List<AppointmentStatus> statuses,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query("SELECT a FROM Appointment a WHERE a.stylist.id = :stylistId AND a.tenant.id = :tenantId " +
+            "AND a.startDate >= :from AND a.startDate <= :to " +
+            "AND a.status <> 'CANCELLED' AND a.status <> 'REJECTED' " +
+            "ORDER BY a.startDate ASC")
+    List<Appointment> findStylistDay(
+            @Param("stylistId") Long stylistId,
+            @Param("tenantId") Long tenantId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
     @Query("SELECT a FROM Appointment a WHERE a.tenant.id = :tenantId AND " +
             "(:stylistId IS NULL OR a.stylist.id = :stylistId) AND " +
             "(:clientId IS NULL OR a.client.id = :clientId) AND " +

@@ -1,8 +1,8 @@
 # 🏗️ Decisiones Arquitectónicas — Beauty Room MVP
 
-**Versión:** 1.5  
+**Versión:** 1.6  
 **Fecha:** 6 de agosto de 2026  
-**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fases 1 (API REST), 2 (bot esqueleto), 3 (FSM agendamiento) y 4 (flujo del estilista) completadas. Resto pendiente de fases futuras.
+**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fases 1 (API REST), 2 (bot esqueleto), 3 (FSM agendamiento), 4 (flujo del estilista) y 5 (recordatorios automáticos) completadas. Resto pendiente de fases futuras.
 
 > **Nota de implementación (5 de agosto de 2026):** las decisiones 1 (Shared DB/Schema), 2 (resolución por JWT + header), 3 (queries explícitas con tenant_id) y 4 (JWT simple con claim `tenantId`) quedaron implementadas en el código. Detalle de lo hecho y gotchas en [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md).
 >
@@ -13,6 +13,8 @@
 > **Fase 3 (mismo día):** FSM conversacional de agendamiento. Decisiones: (a) **estado y datos en `ConversationState`** con `current_step` (`MENU`/`CHOOSE_SERVICE`/`CHOOSE_DATE`/`CHOOSE_TIME`/`CONFIRM`/`CANCEL_SELECT`) y `data` como JSON (`{serviceId, stylistId, date, time}`) con Jackson; (b) **selección por InlineKeyboards** con callbacks prefijados (`SERVICE:`, `DATE:`, `TIME:`, `CANCEL_APPT:`) en vez de texto libre (fecha/hora igual aceptan texto); (c) el **tenant se persiste en el estado** (los callbacks no repiten el deep link) y se usa `TenantInterceptor.setCurrentTenantId`/`clear` porque los services requieren ThreadLocal y el webhook no es HTTP; (d) el **cliente se auto-crea** desde el chat (email sintético `tg_<chatId>@bot.local`, password aleatorio BCrypt) si `findByTelegramChatIdAndTenantId` no lo encuentra; (e) la **concurrencia** se resuelve re-llamando `save()` y capturando `AppointmentConflictException` (re-prompt de horas, sin perder el hilo); (f) el servicio es el que define al estilista (cada `Service` pertenece a un `Stylist`), así elegir servicio implica estilista. Detalle en [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md).
 >
 > **Fase 4 (6 de agosto):** flujo del estilista desde Telegram. Decisiones: (a) el **estilista se identifica por `telegram_chat_id`** (igual que el cliente), con el campo agregado a `Stylist` + `findByTelegramChatId`/`findByTelegramChatIdAndTenantId` — sin login, la asociación chat↔estilista es manual por ahora (onboarding self-service es Fase 10); (b) se reutiliza **el mismo `TelegramUpdateHandler` y el mismo FSM** en lugar de un handler separado: el menú es dinámico según `ensureStylist()`; (c) las **notificaciones viven en `AppointmentService`** (no en el handler): al guardar una cita se notifica al estilista y `cancelAppointmentByStylist` notifica al cliente, reutilizando `IMessagingChannel` — así cualquier canal (API, bot, futuro WhatsApp) dispara la misma notificación; (d) nuevo estado de cita **`NO_SHOW`** como valor de negocio para el futuro (reportes/insights); (e) `completeAppointment` pasa a aceptar **`PENDING` o `CONFIRMED`** (antes solo `CONFIRMED`) para que el estilista pueda cerrar citas sin que el cliente las haya confirmado; (f) el **bloqueo de horarios** usa el flujo fecha→inicio→fin con callbacks y pasos de 30 min, con **horario por defecto 08:00-20:00** si el estilista no tiene `StylistSchedule` ese día. Detalle en [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md).
+>
+> **Fase 5 (mismo día):** recordatorios automáticos. Decisiones: (a) **deduplicación en la entidad `Notification`**: tipos nuevos `REMINDER_24H`/`REMINDER_2H`/`DAILY_SUMMARY` y columna `appointment_id`; antes de enviar se consulta `existsByAppointmentIdAndType` (y por día para el resumen) — sin cola de mensajes, como dice la decisión 9; (b) los recordatorios **no usan `TenantInterceptor`**: el servicio itera los tenants y pasa `tenantId` explícito a las queries de repositorio (`findRemindable`/`findStylistDay`) porque corren fuera de HTTP; (c) el **scheduler es un componente separado** (`ReminderScheduler`) del servicio (`IReminderService`), para poder testear la lógica con Mockito y configurar el cron por property (`app.reminders.interval`/`app.reminders.daily-summary`); (d) **guarda por token real** (`!isBlank`) en el scheduler, no solo `@ConditionalOnProperty` (la key `telegram.bot.token` existe vacía en el properties y esa anotación la consideraría presente) — así nunca se marcan envíos sin bot; (e) las **ventanas** de 24h exigen `startDate > now+2h` y la de 2h `<= now+2h`, para no solapar mensajes ni mandar un "mañana" incorrecto si el job estuvo caído; (f) los callbacks `REMINDER_CONFIRM:`/`REMINDER_CANCEL:` los procesa `TelegramUpdateHandler` con `confirmAppointment`/`cancelAppointment` (reutilizando la lógica tenant-filtrada existente). Detalle en [CHECKLIST_FASE_5.md](CHECKLIST_FASE_5.md).
 
 ---
 
@@ -443,14 +445,13 @@ public class Notification {
 
 ---
 
-## Próximas decisiones (fases 5+)
+## Próximas decisiones (fases 6+)
 
-- [ ] ¿Timezone handling? (Usar ZonedDateTime en Phase 5)
-- [ ] ¿Pagina automatización de recordatorios? (Phase 5)
+- [ ] ¿Timezone handling? (Usar ZonedDateTime en Phase 6)
 - [ ] ¿Integración de calendario Google? (Phase 13)
 - [ ] ¿Modelos de negocio de precios? (Phase 9)
 
 ---
 
-**Documento versión:** 1.5  
-**Próxima revisión:** Después de completar Fase 5 (recordatorios automáticos)
+**Documento versión:** 1.6  
+**Próxima revisión:** Después de completar Fase 6 (validación con usuarios reales)

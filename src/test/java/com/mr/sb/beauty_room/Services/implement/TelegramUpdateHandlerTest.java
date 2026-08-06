@@ -516,4 +516,53 @@ class TelegramUpdateHandlerTest {
         verify(appointmentService).cancelAppointmentByStylist(9L);
         verify(channel).sendMessage(eq("111"), contains("Listo"));
     }
+
+    // ============================ RECORDATORIOS (Fase 5) ============================
+
+    @Test
+    void reminderConfirmCallback_shouldConfirmAppointment() {
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L,
+                ReminderServiceImplement.PREFIX_REMINDER_CONFIRM + "5"));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        when(appointmentService.confirmAppointment(5L)).thenReturn(true);
+
+        handler.handle(new Update());
+
+        verify(appointmentService).confirmAppointment(5L);
+        verify(channel).sendMessage(eq("111"), contains("confirmar"));
+        verify(conversationStateService).save(argThat(s -> "MENU".equals(s.getCurrentStep())));
+    }
+
+    @Test
+    void reminderConfirmCallback_whenAlreadyConfirmed_shouldInformClient() {
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L,
+                ReminderServiceImplement.PREFIX_REMINDER_CONFIRM + "5"));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        when(appointmentService.confirmAppointment(5L)).thenReturn(false);
+
+        handler.handle(new Update());
+
+        verify(appointmentService).confirmAppointment(5L);
+        verify(channel).sendMessage(eq("111"), contains("No pudimos confirmar"));
+    }
+
+    @Test
+    void reminderCancelCallback_shouldCancelAppointment() {
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L,
+                ReminderServiceImplement.PREFIX_REMINDER_CANCEL + "5"));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        when(appointmentService.cancelAppointment(5L)).thenReturn(true);
+
+        handler.handle(new Update());
+
+        verify(appointmentService).cancelAppointment(5L);
+        verify(channel).sendMessage(eq("111"), contains("cancelada"));
+        verify(conversationStateService).save(argThat(s -> "MENU".equals(s.getCurrentStep())));
+    }
 }

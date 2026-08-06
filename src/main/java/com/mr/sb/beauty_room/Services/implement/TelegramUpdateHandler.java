@@ -84,6 +84,8 @@ public class TelegramUpdateHandler {
     private static final String PREFIX_APPT_COMPLETE = "APPT_COMPLETE:";
     private static final String PREFIX_APPT_NOSHOW = "APPT_NOSHOW:";
     private static final String PREFIX_APPT_CANCEL = "APPT_CANCEL:";
+    private static final String PREFIX_REMINDER_CONFIRM = ReminderServiceImplement.PREFIX_REMINDER_CONFIRM;
+    private static final String PREFIX_REMINDER_CANCEL = ReminderServiceImplement.PREFIX_REMINDER_CANCEL;
 
     private final IMessagingChannel channel;
     private final IConversationStateService conversationStateService;
@@ -330,6 +332,10 @@ public class TelegramUpdateHandler {
                     manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_NOSHOW, cb.substring(PREFIX_APPT_NOSHOW.length()));
                 } else if (cb.startsWith(PREFIX_APPT_CANCEL)) {
                     manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_CANCEL, cb.substring(PREFIX_APPT_CANCEL.length()));
+                } else if (cb.startsWith(PREFIX_REMINDER_CONFIRM)) {
+                    handleReminderConfirm(msg, state, tenantId, cb.substring(PREFIX_REMINDER_CONFIRM.length()));
+                } else if (cb.startsWith(PREFIX_REMINDER_CANCEL)) {
+                    handleReminderCancel(msg, state, tenantId, cb.substring(PREFIX_REMINDER_CANCEL.length()));
                 } else {
                     channel.sendMessage(msg.chatId(), "Opción desconocida. Abrí el menú:");
                     showMenu(msg, tenantId);
@@ -907,6 +913,62 @@ public class TelegramUpdateHandler {
                 : "No se pudo actualizar esa cita (¿ya no está activa?).");
         showMenu(msg, tenantId);
         updateState(state, STEP_MENU, null);
+    }
+
+    // ============================ FLUJO: RECORDATORIOS (Fase 5) ============================
+
+    private void handleReminderConfirm(TelegramMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
+        Long appointmentId = parseLongId(appointmentIdText);
+        if (appointmentId == null) {
+            channel.sendMessage(msg.chatId(), "Cita inválida.");
+            return;
+        }
+        boolean ok;
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            ok = appointmentService.confirmAppointment(appointmentId);
+        } catch (Exception e) {
+            log.error("Error confirmando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+            ok = false;
+        } finally {
+            TenantInterceptor.clear();
+        }
+        channel.sendMessage(msg.chatId(), ok
+                ? "✅ ¡Gracias por confirmar! Te esperamos."
+                : "No pudimos confirmar tu cita (¿ya estaba confirmada o cancelada?).");
+        showMenu(msg, tenantId);
+        updateState(state, STEP_MENU, null);
+    }
+
+    private void handleReminderCancel(TelegramMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
+        Long appointmentId = parseLongId(appointmentIdText);
+        if (appointmentId == null) {
+            channel.sendMessage(msg.chatId(), "Cita inválida.");
+            return;
+        }
+        boolean ok;
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            ok = appointmentService.cancelAppointment(appointmentId);
+        } catch (Exception e) {
+            log.error("Error cancelando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+            ok = false;
+        } finally {
+            TenantInterceptor.clear();
+        }
+        channel.sendMessage(msg.chatId(), ok
+                ? "❌ Tu cita fue cancelada. Si querés reagendar, usá «Agendar cita»."
+                : "No pudimos cancelar tu cita (¿ya está cancelada?).");
+        showMenu(msg, tenantId);
+        updateState(state, STEP_MENU, null);
+    }
+
+    private Long parseLongId(String text) {
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     // ============================ HELPERS ============================

@@ -135,21 +135,17 @@
 ## FASE 5 — Recordatorios automáticos
 *Objetivo: el "wow factor" que justifica que alguien pague por esto — reduce ausencias, que es el dolor #1 de estilistas independientes.*
 
-**ESTADO ACTUAL:**
-- ✅ Entidad `Notification` existe en BD
-- ❌ **PENDIENTE:** Job programado (Spring `@Scheduled`)
-- ❌ **PENDIENTE:** Lógica de envío de recordatorios
-- ❌ **PENDIENTE:** Depende de Fase 2 (bot de Telegram)
+**ESTADO ACTUAL: ✅ COMPLETADA (6 de agosto de 2026)**
+- ✅ **Job programado (`@Scheduled` + `@EnableScheduling`):** `ReminderScheduler` con cron cada 15 min (`app.reminders.interval`) para recordatorios y cron diario 07:00 (`app.reminders.daily-summary`) para el resumen. El job se omite si `telegram.bot.token` está vacío (evita marcar envíos sin bot real).
+- ✅ **Recordatorios 24h y 2h antes:** `IReminderService.sendUpcomingReminders()` consulta citas `PENDING`/`CONFIRMED` en ventanas de 24h y 2h (query `findRemindable` que ya excluye citas canceladas y clientes sin `telegram_chat_id`) y envía al cliente un mensaje con botones `✅ Confirmar` (`REMINDER_CONFIRM:<id>`) y `❌ Cancelar cita` (`REMINDER_CANCEL:<id>`).
+- ✅ **Deduplicación:** cada envío persiste una `Notification` (nuevos tipos `REMINDER_24H`/`REMINDER_2H` y columna `appointment_id`); `existsByAppointmentIdAndType` evita reenviar. La ventana de 2h solo aplica al recordatorio corto (la de 24h exige que la cita esté a más de 2h) para no solapar mensajes.
+- ✅ **Resumen diario al estilista:** `sendDailySummary()` envía a cada estilista con `telegram_chat_id` las citas del día (excluye `CANCELLED`/`REJECTED`, query `findStylistDay`), con mensaje "No tenés citas hoy" si está vacío. Dedup por día (`existsByUserIdAndTypeAndCreatedAtGreaterThanEqual` con tipo `DAILY_SUMMARY`).
+- ✅ **Confirmar/cancelar desde el recordatorio:** `TelegramUpdateHandler` procesa los callbacks `REMINDER_CONFIRM:`/`REMINDER_CANCEL:` → `confirmAppointment`/`cancelAppointment` (ambos filtran por tenant) con mensajes de confirmación al cliente.
+- ✅ Tests: 9 en `ReminderServiceImplementTest` + 3 de callbacks en `TelegramUpdateHandlerTest` + 3 de queries en `AppointmentRepositoryTests` — suite total **68 tests, 0 fallos**
 
-**Acciones requeridas:**
-- [ ] Job programado (Spring `@Scheduled` o cron) que revisa citas próximas (ej: 24h y 2h antes)
-- [ ] Envío de recordatorio al cliente vía Telegram con opción de confirmar/cancelar con un botón
-- [ ] Envío de resumen diario al estilista cada mañana con las citas del día
-- [ ] Marcar en DB que el recordatorio ya se envió (evitar duplicados)
+**Nota técnica:** los recordatorios no dependen de `TenantInterceptor`: el servicio itera tenants y pasa `tenantId` explícito a las queries de repositorio (más robusto para código que corre fuera de HTTP).
 
-**Nota técnica:** con pocos tenants un cron simple cada 15-30 min alcanza. No necesitas colas (Redis/RabbitMQ) todavía — eso es optimización prematura en tu etapa.
-
-**Entregable de la fase:** producto con loop completo: agendar → recordar → confirmar/asistir. Este es tu MVP validable.
+**Entregable de la fase:** producto con loop completo: agendar → recordar → confirmar/asistir. Este es tu MVP validable. ✅
 
 ---
 
@@ -157,8 +153,8 @@
 *Objetivo: dejar de suponer y empezar a saber. Esta fase es más de negocio que de código.*
 
 **ESTADO ACTUAL:**
-- ❌ No iniciada (depende de Fases 2-5 completas)
-- ❌ MVP no existe aún (bot sin lógica conversacional)
+- 🟡 Próxima fase — desbloqueada (Fases 2-5 completas, 68 tests OK). A la espera de ejecución: más de negocio que de código.
+- ✅ MVP de código completo: bot con flujo completo de agendamiento, gestión de citas del estilista y recordatorios automáticos. Falta validarlo con usuarios reales.
 
 **Acciones requeridas:**
 - [ ] Reclutar 10-15 estilistas de tu ciudad (contacto directo, gratis a cambio de feedback)
@@ -302,7 +298,7 @@
 | 2 | Bot: esqueleto + webhook | ✅ **COMPLETADA** | Sí, es el core |
 | 3 | Bot: flujo de agendamiento | ✅ **COMPLETADA** | Sí, es el core |
 | 4 | Bot: flujo del estilista | ✅ **COMPLETADA** | Sí, completa el loop |
-| 5 | Recordatorios automáticos | ❌ No iniciada | Sí, "wow factor" |
+| 5 | Recordatorios automáticos | ✅ **COMPLETADA** | Sí, "wow factor" |
 | 6 | Validación con usuarios reales | ❌ No iniciada | **Aquí decides si sigues** |
 | 7 | Iteración por feedback real | ❌ No iniciada | Depende de Fase 6 |
 | 8-10 | Panel Angular, billing, self-service | ❌ No iniciada | No, es después de MVP |
@@ -342,10 +338,13 @@
    - [x] 53 tests OK
    - **Razón:** Completa el loop operativo sin panel web. Detalle en [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md).
 
-5. **AHORA — Fase 5: Recordatorios automáticos (1 semana): ⏳ PENDIENTE**
-   - [ ] Job `@Scheduled` que revisa citas próximas (24h y 2h antes) y envía recordatorio al cliente vía Telegram con botones confirmar/cancelar
-   - [ ] Resumen diario al estilista cada mañana con las citas del día
-   - [ ] Marcado en `Notification` para evitar duplicados
-   - **Razón:** Es el "wow factor" que reduce ausencias (dolor #1). Depende de Fase 4 (estilista ya opera en el bot).
+5. **AHORA — Fase 5: Recordatorios automáticos (1 semana): ✅ COMPLETADA**
+   - [x] Job `@Scheduled` cada 15 min: recordatorios 24h y 2h antes al cliente con botones confirmar/cancelar
+   - [x] Resumen diario al estilista cada mañana con las citas del día
+   - [x] Deduplicación en `Notification` (tipos `REMINDER_24H`/`REMINDER_2H`/`DAILY_SUMMARY`, columna `appointment_id`)
+   - [x] 68 tests OK
+   - **Razón:** Es el "wow factor" que reduce ausencias (dolor #1). Detalle en [CHECKLIST_FASE_5.md](CHECKLIST_FASE_5.md).
+
+6. **SIGUIENTE — Fase 6: Validación con usuarios reales (early adopters)**: reclutar 10-15 estilistas, onboarding manual, medir citas/semana/estilista. Es más de negocio que de código.
 
 **Timeline estimado para MVP completo:** 4-5 semanas si trabajas full-time en esto.

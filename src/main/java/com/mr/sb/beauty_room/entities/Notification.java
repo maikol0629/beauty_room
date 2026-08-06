@@ -23,6 +23,9 @@ public class Notification {
     @Column(nullable = false)
     private Long userId;
 
+    @Column(name = "appointment_id")
+    private Long appointmentId;
+
     @Enumerated(EnumType.STRING)
     private NotificationType type;
 
