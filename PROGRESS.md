@@ -1,14 +1,14 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
-**Actualizado:** 5 de agosto de 2026  
-**Próxima revisión:** Después de Fase 4
+**Actualizado:** 6 de agosto de 2026  
+**Próxima revisión:** Después de Fase 5
 
 ---
 
 ## 🎯 Progreso General del Proyecto
 
 ```
-██████████████████████████████████████████░░░░  (83% completado)
+██████████████████████████████████████████░░░░  (91% completado)
 
 ✅ Backend: 100% entidades creadas
 ✅ Autenticación: JWT implementado
@@ -17,7 +17,7 @@
 ✅ API REST validada: slots, no-doble-booking 409, telegram_chat_id, Swagger (Fase 1)
 ✅ Bot Telegram: esqueleto + webhook + deep link (Fase 2 completada)
 ✅ Bot Telegram: FSM de agendamiento + Mis citas + Cancelar (Fase 3 completada)
-❌ Bot Telegram: flujo del estilista (Fase 4)
+✅ Bot Telegram: flujo del estilista — agenda, bloquear, completar/no-show/cancelar (Fase 4 completada)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -166,21 +166,24 @@ Estado: ✅ COMPLETADA (5 de agosto de 2026)
 Descripción: Estilista gestiona agenda desde Telegram
 Timeline: 1 semana (después de Fase 3)
 Prioridad: 🟡 MEDIA (completa el loop)
-Estado: ❌ NO INICIADA
+Estado: ✅ COMPLETADA (6 de agosto de 2026)
 
 ┌─────────────────────────────────────────┐
 │ Subtareas:                              │
 ├─────────────────────────────────────────┤
-│ [ ] Comando: Ver agenda del día/semana  │
-│ [ ] Comando: Bloquear horarios          │
-│ [ ] Notificaciones: Nueva cita          │
-│ [ ] Comando: Marcar cita completada     │
-│ [ ] Comando: Cancelar cita              │
+│ [x] Comando: Ver agenda del día/semana  │
+│ [x] Comando: Bloquear horarios          │
+│ [x] Notificaciones: Nueva cita          │
+│ [x] Comando: Marcar cita completada     │
+│ [x] Comando: Cancelar cita              │
 ├─────────────────────────────────────────┤
-│ Entregable: Estilista opera vía Telegram
+│ Entregable: Estilista opera vía Telegram ✅
+│ Verificación: 53 tests OK               │
 │ Bloqueante para: Fase 5                 │
 └─────────────────────────────────────────┘
 ```
+
+**Documentación:** [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md)
 
 ---
 
@@ -286,7 +289,7 @@ Semana 1-2:     ███░░░░░░░░░░░░░░░░░  FA
 Semana 3:       ░░░███░░░░░░░░░░░░░░  FASE 1: API REST ✅
 Semana 4:       ░░░░░███░░░░░░░░░░░░  FASE 2: Bot esqueleto ✅
 Semana 5:       ░░░░░░░███░░░░░░░░░░  FASE 3: Bot MVP agendar ✅
-Semana 6-7:     ░░░░░░░░░░██████░░░░  FASE 4-5: Flujos completos
+Semana 6-7:     ░░░░░░░░░░██████░░░░  FASE 4: Flujo estilista ✅ (semana 6) | FASE 5: Recordatorios
 Semana 8-10:    ░░░░░░░░░░░░░░░░███░  FASE 6: Validación real
 Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FASE 7: Iteración
 
@@ -303,7 +306,7 @@ Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FA
 | ID | Riesgo | Severidad | Cómo mitigar |
 |---|---|---|---|
 | R1 | Sin multitenant → security issue | ✅ RESUELTO | Fase 0 completada, aislamiento verificado |
-| R2 | Bot sin flujo de estilista → loop incompleto | 🟡 ALTA | Fases 2-3 (agendamiento) ✅; falta Fase 4 (estilista) |
+| R2 | Bot sin flujo de estilista → loop incompleto | ✅ RESUELTO | Fases 2-3 (agendamiento) ✅ + Fase 4 (estilista) ✅ |
 | R3 | Doble-booking de citas | ✅ RESUELTO | 409 Conflict + query excluye CANCELLED (F1) |
 | R4 | JWT sin tenant_id → fácil de atacar | ✅ RESUELTO | JWT incluye `tenantId` claim (F0) |
 | R5 | Endpoints no validados | ✅ RESUELTO | Postman collection + tests E2E (F1) |
@@ -334,6 +337,7 @@ Antes de empezar Fase 0 (completado):
 | [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) | Guía verificación API REST |
 | [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md) | Guía bot Telegram (webhook + deep link) |
 | [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md) | Guía FSM de agendamiento (Fase 3) |
+| [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md) | Guía flujo del estilista (Fase 4) |
 | [DECISION_LOG.md](DECISION_LOG.md) | Decisiones arquitectónicas explicadas |
 | [RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md) | Qué cambió en el plan |
 | [PROGRESS.md](PROGRESS.md) | Este archivo — estado general |
@@ -344,12 +348,12 @@ Antes de empezar Fase 0 (completado):
 
 ```
 1. Probar el agendamiento completo en local (ngrok + deep link + Fase 3)
-2. Fase 4: FSM del estilista (agenda del día, bloquear horarios, completar/no-show, cancelar)
-3. Fase 5: recordatorios automáticos (@Scheduled)
+2. ✅ Fase 4 COMPLETADA: FSM del estilista (agenda del día, bloquear horarios, completar/no-show, cancelar)
+3. Fase 5: recordatorios automáticos (@Scheduled) — 24h y 2h antes + resumen diario al estilista
 ```
 
 ---
 
-**Última actualización:** 5 de agosto de 2026 17:00 UTC  
+**Última actualización:** 6 de agosto de 2026 12:00 UTC  
 **Responsable:** Auditoría automática + Copilot  
-**Próximo review:** Después de Fase 4
+**Próximo review:** Después de Fase 5

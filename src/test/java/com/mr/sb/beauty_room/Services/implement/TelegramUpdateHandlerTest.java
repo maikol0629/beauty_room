@@ -3,10 +3,12 @@ package com.mr.sb.beauty_room.Services.implement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentResponseDto;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentSaveDto;
+import com.mr.sb.beauty_room.DTOS.client.ClientResponseDto;
 import com.mr.sb.beauty_room.DTOS.service.ServiceResponseDto;
 import com.mr.sb.beauty_room.DTOS.telegram.TelegramMessage;
 import com.mr.sb.beauty_room.Exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
+import com.mr.sb.beauty_room.Services.IBlockedSlotService;
 import com.mr.sb.beauty_room.Services.IConversationStateService;
 import com.mr.sb.beauty_room.Services.IMessagingChannel;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
@@ -18,6 +20,7 @@ import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.ClientRepository;
 import com.mr.sb.beauty_room.repository.ServiceRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
+import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
 import com.mr.sb.beauty_room.repository.TenantRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +61,8 @@ class TelegramUpdateHandlerTest {
     @Mock
     private IAppointmentService appointmentService;
     @Mock
+    private IBlockedSlotService blockedSlotService;
+    @Mock
     private ClientRepository clientRepository;
     @Mock
     private TenantRepository tenantRepository;
@@ -65,6 +70,8 @@ class TelegramUpdateHandlerTest {
     private ServiceRepository serviceRepository;
     @Mock
     private StylistRepository stylistRepository;
+    @Mock
+    private StylistScheduleRepository stylistScheduleRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Spy
@@ -354,5 +361,159 @@ class TelegramUpdateHandlerTest {
 
         verify(channel).sendMessage(eq("111"), contains("Cita cancelada"));
         verify(conversationStateService).save(argThat(s -> "MENU".equals(s.getCurrentStep())));
+    }
+
+    // ============================ ESTILISTA (Fase 4) ============================
+
+    @Test
+    void stylistMenu_shouldShowStylistOptions() {
+        stubMessage(new TelegramMessage("111", "/start", "juan", "Juan", 123L, null));
+        ConversationState state = state("111", null, null, null);
+        stubGetOrCreate(state);
+
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe")
+                .tenant(Tenant.builder().id(1L).build()).build();
+        when(clientRepository.findByTelegramChatId("111")).thenReturn(Optional.empty());
+        when(stylistRepository.findByTelegramChatId("111")).thenReturn(Optional.of(stylist));
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+
+        handler.handle(new Update());
+
+        verify(channel).sendKeyboard(eq("111"), contains("Hola"),
+                argThat(buttons -> buttons.contains("Ver agenda")
+                        && buttons.contains("Bloquear horario")
+                        && buttons.contains("Gestionar citas")));
+    }
+
+    @Test
+    void notStylist_shouldRejectAgendaCommand() {
+        stubMessage(new TelegramMessage("111", "Ver agenda", "juan", "Juan", 123L, null));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.empty());
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("111"), contains("solo para estilistas"));
+        verify(appointmentService, never()).findAppointmentsByFilters(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void stylistAgenda_shouldShowMenuAndTodayAppointments() {
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe").build();
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+
+        stubMessage(new TelegramMessage("111", "Ver agenda", "juan", "Juan", 123L, null));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendInlineKeyboard(eq("111"), contains("¿Qué agenda"),
+                argThat(buttons -> buttons.stream().anyMatch(b -> b.callbackData().equals("AGENDA_HOY"))
+                        && buttons.stream().anyMatch(b -> b.callbackData().equals("AGENDA_SEMANA"))));
+
+        AppointmentResponseDto appt = AppointmentResponseDto.builder()
+                .id(7L)
+                .startDate(LocalDateTime.now().withHour(10).withMinute(0))
+                .status(AppointmentStatus.CONFIRMED)
+                .service(ServiceResponseDto.builder().name("Haircut").build())
+                .client(ClientResponseDto.builder().name("Alice").build())
+                .build();
+        when(appointmentService.findAppointmentsByFilters(eq(5L), any(), any(), any(), any()))
+                .thenReturn(List.of(appt));
+
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "AGENDA_HOY"));
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("111"), contains("Tu agenda"));
+        verify(channel).sendMessage(eq("111"), contains("Haircut"));
+    }
+
+    @Test
+    void stylistBlockFlow_shouldCreateBlockedSlot() {
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe").build();
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+
+        ConversationState state = state("111", "BLOCK_DATE", "{\"stylistId\":\"5\"}", 1L);
+        stubGetOrCreate(state);
+
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "BLOCK_DATE:2026-08-10"));
+        handler.handle(new Update());
+        assertThat(state.getCurrentStep()).isEqualTo("BLOCK_START");
+
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "BLOCK_START:10:00"));
+        handler.handle(new Update());
+        assertThat(state.getCurrentStep()).isEqualTo("BLOCK_END");
+
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "BLOCK_END:12:00"));
+        handler.handle(new Update());
+
+        verify(blockedSlotService).create(argThat(dto ->
+                dto.getStylistId() == 5L
+                        && dto.getStartDate().equals(LocalDateTime.of(2026, 8, 10, 10, 0))
+                        && dto.getEndDate().equals(LocalDateTime.of(2026, 8, 10, 12, 0))));
+        verify(channel).sendMessage(eq("111"), contains("Horario bloqueado"));
+    }
+
+    @Test
+    void stylistGestionar_shouldShowManagementButtons() {
+        stubMessage(new TelegramMessage("111", "Gestionar citas", "juan", "Juan", 123L, null));
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe").build();
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+
+        AppointmentResponseDto appt = AppointmentResponseDto.builder()
+                .id(7L)
+                .startDate(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0))
+                .status(AppointmentStatus.PENDING)
+                .service(ServiceResponseDto.builder().name("Haircut").build())
+                .client(ClientResponseDto.builder().name("Alice").build())
+                .build();
+        when(appointmentService.findAppointmentsByFilters(eq(5L), any(), any(), any(), any()))
+                .thenReturn(List.of(appt));
+
+        handler.handle(new Update());
+
+        verify(channel).sendInlineKeyboard(eq("111"), contains("¿Qué querés hacer"),
+                argThat(buttons -> buttons.stream().anyMatch(b -> b.callbackData().equals("APPT_COMPLETE:7"))
+                        && buttons.stream().anyMatch(b -> b.callbackData().equals("APPT_NOSHOW:7"))
+                        && buttons.stream().anyMatch(b -> b.callbackData().equals("APPT_CANCEL:7"))));
+    }
+
+    @Test
+    void stylistCompleteCallback_shouldCompleteAppointment() {
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "APPT_COMPLETE:7"));
+        ConversationState state = state("111", "STYLIST_APPT", null, 1L);
+        stubGetOrCreate(state);
+
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe").build();
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(appointmentService.completeAppointment(7L)).thenReturn(true);
+
+        handler.handle(new Update());
+
+        verify(appointmentService).completeAppointment(7L);
+        verify(channel).sendMessage(eq("111"), contains("Listo"));
+        verify(conversationStateService).save(argThat(s -> "MENU".equals(s.getCurrentStep())));
+    }
+
+    @Test
+    void stylistCancelCallback_shouldCancelAppointmentNotifyingClient() {
+        stubMessage(new TelegramMessage("111", null, "juan", "Juan", 123L, "APPT_CANCEL:9"));
+        ConversationState state = state("111", "STYLIST_APPT", null, 1L);
+        stubGetOrCreate(state);
+
+        Stylist stylist = Stylist.builder().id(5L).name_stylist("John Doe").build();
+        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(appointmentService.cancelAppointmentByStylist(9L)).thenReturn(true);
+
+        handler.handle(new Update());
+
+        verify(appointmentService).cancelAppointmentByStylist(9L);
+        verify(channel).sendMessage(eq("111"), contains("Listo"));
     }
 }

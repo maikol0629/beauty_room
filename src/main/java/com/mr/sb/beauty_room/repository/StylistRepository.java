@@ -2,6 +2,8 @@ package com.mr.sb.beauty_room.repository;
 
 import com.mr.sb.beauty_room.entities.Stylist;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -16,4 +18,10 @@ public interface StylistRepository extends JpaRepository<Stylist, Long> {
     List<Stylist> findByTenantId(Long tenantId);
 
     Optional<Stylist> findByIdAndTenantId(Long id, Long tenantId);
+
+    @Query("SELECT s FROM Stylist s WHERE s.telegram_chat_id = :telegramChatId")
+    Optional<Stylist> findByTelegramChatId(@Param("telegramChatId") String telegramChatId);
+
+    @Query("SELECT s FROM Stylist s WHERE s.telegram_chat_id = :telegramChatId AND s.tenant.id = :tenantId")
+    Optional<Stylist> findByTelegramChatIdAndTenantId(@Param("telegramChatId") String telegramChatId, @Param("tenantId") Long tenantId);
 }

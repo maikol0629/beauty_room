@@ -34,6 +34,10 @@ public interface IAppointmentService {
 
     boolean completeAppointment(long id);
 
+    boolean noShowAppointment(long id);
+
+    boolean cancelAppointmentByStylist(long id);
+
     List<AppointmentResponseDto> findAppointmentsByFilters(
             Long stylistId, Long clientId, AppointmentStatus status,
             LocalDateTime from, LocalDateTime to);

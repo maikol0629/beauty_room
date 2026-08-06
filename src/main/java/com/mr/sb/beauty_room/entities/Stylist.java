@@ -21,6 +21,9 @@ public class Stylist extends User {
     @Column(nullable = false)
     private String phone;
 
+    @Column(name = "telegram_chat_id")
+    private String telegram_chat_id;
+
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default

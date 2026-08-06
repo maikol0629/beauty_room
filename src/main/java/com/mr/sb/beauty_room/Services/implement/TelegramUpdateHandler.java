@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentResponseDto;
 import com.mr.sb.beauty_room.DTOS.appointments.AppointmentSaveDto;
+import com.mr.sb.beauty_room.DTOS.blocked_slot.BlockedSlotRequestDto;
 import com.mr.sb.beauty_room.DTOS.telegram.Button;
 import com.mr.sb.beauty_room.DTOS.telegram.TelegramMessage;
 import com.mr.sb.beauty_room.Exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.Security.TenantInterceptor;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
+import com.mr.sb.beauty_room.Services.IBlockedSlotService;
 import com.mr.sb.beauty_room.Services.IConversationStateService;
 import com.mr.sb.beauty_room.Services.IMessagingChannel;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
@@ -16,10 +18,12 @@ import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.entities.Service;
 import com.mr.sb.beauty_room.entities.Stylist;
+import com.mr.sb.beauty_room.entities.StylistSchedule;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.ClientRepository;
 import com.mr.sb.beauty_room.repository.ServiceRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
+import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
 import com.mr.sb.beauty_room.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -56,6 +60,10 @@ public class TelegramUpdateHandler {
     private static final String STEP_CHOOSE_TIME = "CHOOSE_TIME";
     private static final String STEP_CONFIRM = "CONFIRM";
     private static final String STEP_CANCEL_SELECT = "CANCEL_SELECT";
+    private static final String STEP_BLOCK_DATE = "BLOCK_DATE";
+    private static final String STEP_BLOCK_START = "BLOCK_START";
+    private static final String STEP_BLOCK_END = "BLOCK_END";
+    private static final String STEP_STYLIST_APPT = "STYLIST_APPT";
 
     private static final String CB_MENU = "MENU";
     private static final String CB_AGENDAR = "AGENDAR";
@@ -64,18 +72,28 @@ public class TelegramUpdateHandler {
     private static final String CB_CONFIRM = "CONFIRM";
     private static final String CB_ABORT = "ABORT";
     private static final String CB_BACK_DATES = "BACK_DATES";
+    private static final String CB_AGENDA_HOY = "AGENDA_HOY";
+    private static final String CB_AGENDA_SEMANA = "AGENDA_SEMANA";
     private static final String PREFIX_SERVICE = "SERVICE:";
     private static final String PREFIX_DATE = "DATE:";
     private static final String PREFIX_TIME = "TIME:";
     private static final String PREFIX_CANCEL_APPT = "CANCEL_APPT:";
+    private static final String PREFIX_BLOCK_DATE = "BLOCK_DATE:";
+    private static final String PREFIX_BLOCK_START = "BLOCK_START:";
+    private static final String PREFIX_BLOCK_END = "BLOCK_END:";
+    private static final String PREFIX_APPT_COMPLETE = "APPT_COMPLETE:";
+    private static final String PREFIX_APPT_NOSHOW = "APPT_NOSHOW:";
+    private static final String PREFIX_APPT_CANCEL = "APPT_CANCEL:";
 
     private final IMessagingChannel channel;
     private final IConversationStateService conversationStateService;
     private final IAppointmentService appointmentService;
+    private final IBlockedSlotService blockedSlotService;
     private final ClientRepository clientRepository;
     private final TenantRepository tenantRepository;
     private final ServiceRepository serviceRepository;
     private final StylistRepository stylistRepository;
+    private final StylistScheduleRepository stylistScheduleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -109,7 +127,7 @@ public class TelegramUpdateHandler {
         if (text.startsWith("/start")) {
             if (tenantId != null) {
                 updateState(state, STEP_MENU, null);
-                showMenu(msg);
+                showMenu(msg, tenantId);
             } else {
                 sendGuidance(msg);
                 updateState(state, STEP_INITIAL, null);
@@ -136,9 +154,21 @@ public class TelegramUpdateHandler {
             startCancel(msg, state, tenantId);
             return;
         }
+        if (text.equalsIgnoreCase("/agenda") || lower.equals("ver agenda")) {
+            showStylistAgendaMenu(msg, state, tenantId);
+            return;
+        }
+        if (text.equalsIgnoreCase("/bloquear") || lower.equals("bloquear") || lower.equals("bloquear horario")) {
+            startBlock(msg, state, tenantId);
+            return;
+        }
+        if (text.equalsIgnoreCase("/gestionar") || text.equalsIgnoreCase("/estado") || lower.equals("gestionar citas")) {
+            showStylistAppointments(msg, state, tenantId);
+            return;
+        }
         if (text.equalsIgnoreCase("/reschedule")) {
             channel.sendMessage(msg.chatId(), "El reagendado llega pronto. Por ahora, cancelá la cita y agendá una nueva.");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -151,7 +181,7 @@ public class TelegramUpdateHandler {
             trySelectTimeByText(msg, state, data, tenantId, text);
         } else {
             channel.sendMessage(msg.chatId(), "Elegí una opción del menú:");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
         }
     }
@@ -193,7 +223,7 @@ public class TelegramUpdateHandler {
 
         switch (cb) {
             case CB_MENU -> {
-                showMenu(msg);
+                showMenu(msg, tenantId);
                 updateState(state, STEP_MENU, null);
             }
             case CB_AGENDAR -> {
@@ -224,6 +254,20 @@ public class TelegramUpdateHandler {
                     showDateOptions(msg, data, tenantId);
                 }
             }
+            case CB_AGENDA_HOY -> {
+                if (tenantId == null) {
+                    sendGuidance(msg);
+                } else {
+                    showAgenda(msg, state, tenantId, LocalDate.now(), LocalDate.now());
+                }
+            }
+            case CB_AGENDA_SEMANA -> {
+                if (tenantId == null) {
+                    sendGuidance(msg);
+                } else {
+                    showAgenda(msg, state, tenantId, LocalDate.now(), LocalDate.now().plusDays(7));
+                }
+            }
             case CB_CONFIRM -> {
                 if (tenantId != null) {
                     confirmAppointment(msg, state, data, tenantId);
@@ -233,7 +277,7 @@ public class TelegramUpdateHandler {
             }
             case CB_ABORT -> {
                 channel.sendMessage(msg.chatId(), "Listo, lo dejamos acá.");
-                showMenu(msg);
+                showMenu(msg, tenantId);
                 updateState(state, STEP_MENU, null);
             }
             default -> {
@@ -259,9 +303,36 @@ public class TelegramUpdateHandler {
                     }
                 } else if (cb.startsWith(PREFIX_CANCEL_APPT)) {
                     cancelAppointmentByCallback(msg, state, tenantId, cb.substring(PREFIX_CANCEL_APPT.length()));
+                } else if (cb.startsWith(PREFIX_BLOCK_DATE)) {
+                    try {
+                        selectBlockDate(msg, state, data, tenantId, LocalDate.parse(cb.substring(PREFIX_BLOCK_DATE.length())));
+                    } catch (Exception e) {
+                        channel.sendMessage(msg.chatId(), "Fecha inválida. Elegí otra:");
+                        startBlock(msg, state, tenantId);
+                    }
+                } else if (cb.startsWith(PREFIX_BLOCK_START)) {
+                    try {
+                        selectBlockStart(msg, state, data, tenantId, LocalTime.parse(cb.substring(PREFIX_BLOCK_START.length()), TIME_FMT));
+                    } catch (Exception e) {
+                        channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
+                        showBlockStartOptions(msg, data, tenantId);
+                    }
+                } else if (cb.startsWith(PREFIX_BLOCK_END)) {
+                    try {
+                        selectBlockEnd(msg, state, data, tenantId, LocalTime.parse(cb.substring(PREFIX_BLOCK_END.length()), TIME_FMT));
+                    } catch (Exception e) {
+                        channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
+                        showBlockEndOptions(msg, data, tenantId);
+                    }
+                } else if (cb.startsWith(PREFIX_APPT_COMPLETE)) {
+                    manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_COMPLETE, cb.substring(PREFIX_APPT_COMPLETE.length()));
+                } else if (cb.startsWith(PREFIX_APPT_NOSHOW)) {
+                    manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_NOSHOW, cb.substring(PREFIX_APPT_NOSHOW.length()));
+                } else if (cb.startsWith(PREFIX_APPT_CANCEL)) {
+                    manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_CANCEL, cb.substring(PREFIX_APPT_CANCEL.length()));
                 } else {
                     channel.sendMessage(msg.chatId(), "Opción desconocida. Abrí el menú:");
-                    showMenu(msg);
+                    showMenu(msg, tenantId);
                     updateState(state, STEP_MENU, null);
                 }
             }
@@ -274,7 +345,7 @@ public class TelegramUpdateHandler {
         List<Service> services = serviceRepository.findByTenantId(tenantId);
         if (services.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Todavía no hay servicios cargados en tu salón. Probá más tarde.");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -313,7 +384,7 @@ public class TelegramUpdateHandler {
         String serviceId = data.get("serviceId");
         if (stylistId == null || serviceId == null) {
             channel.sendMessage(msg.chatId(), "Perdimos la selección. Empecemos de nuevo:");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             return;
         }
         List<LocalDate> dates = findDatesWithSlots(Long.parseLong(stylistId), Long.parseLong(serviceId), 7);
@@ -353,7 +424,7 @@ public class TelegramUpdateHandler {
         String serviceId = data.get("serviceId");
         if (stylistId == null || serviceId == null) {
             channel.sendMessage(msg.chatId(), "Perdimos la selección. Empecemos de nuevo:");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -397,7 +468,7 @@ public class TelegramUpdateHandler {
         String dateStr = data.get("date");
         if (serviceId == null || stylistId == null || dateStr == null) {
             channel.sendMessage(msg.chatId(), "Perdimos la selección. Empecemos de nuevo:");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -424,7 +495,7 @@ public class TelegramUpdateHandler {
         String timeStr = data.get("time");
         if (serviceId == null || stylistId == null || dateStr == null || timeStr == null) {
             channel.sendMessage(msg.chatId(), "Perdimos el hilo de la conversación. Empecemos de nuevo:");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -472,7 +543,7 @@ public class TelegramUpdateHandler {
         Optional<Client> clientOpt = clientRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
         if (clientOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Todavía no tenés citas. Agendá una tocando «Agendar cita».");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -497,7 +568,7 @@ public class TelegramUpdateHandler {
             }
             channel.sendMessage(msg.chatId(), sb.toString());
         }
-        showMenu(msg);
+        showMenu(msg, tenantId);
         updateState(state, STEP_MENU, null);
     }
 
@@ -507,7 +578,7 @@ public class TelegramUpdateHandler {
         Optional<Client> clientOpt = clientRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
         if (clientOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No tenés citas para cancelar. Agendá una tocando «Agendar cita».");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -525,7 +596,7 @@ public class TelegramUpdateHandler {
                 .toList();
         if (cancellable.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No tenés citas activas para cancelar.");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -545,7 +616,7 @@ public class TelegramUpdateHandler {
             appointmentId = Long.parseLong(appointmentIdText);
         } catch (NumberFormatException e) {
             channel.sendMessage(msg.chatId(), "Cita inválida.");
-            showMenu(msg);
+            showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
             return;
         }
@@ -562,7 +633,279 @@ public class TelegramUpdateHandler {
         channel.sendMessage(msg.chatId(), ok
                 ? "✅ Cita cancelada."
                 : "No se pudo cancelar esa cita (¿ya está cancelada o no es tuya?).");
-        showMenu(msg);
+        showMenu(msg, tenantId);
+        updateState(state, STEP_MENU, null);
+    }
+
+    // ============================ FLUJO: ESTILISTA ============================
+
+    private Optional<Stylist> ensureStylist(TelegramMessage msg, Long tenantId) {
+        return stylistRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
+    }
+
+    // ----- AGENDA DEL ESTILISTA -----
+
+    private void showStylistAgendaMenu(TelegramMessage msg, ConversationState state, Long tenantId) {
+        if (ensureStylist(msg, tenantId).isEmpty()) {
+            channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        channel.sendInlineKeyboard(msg.chatId(), "¿Qué agenda querés ver?", List.of(
+                new Button("📅 Hoy", CB_AGENDA_HOY),
+                new Button("🗓 Próximos 7 días", CB_AGENDA_SEMANA),
+                new Button("◀ Volver", CB_MENU)));
+        updateState(state, STEP_MENU, null);
+    }
+
+    private void showAgenda(TelegramMessage msg, ConversationState state, Long tenantId, LocalDate from, LocalDate to) {
+        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        if (stylistOpt.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        List<AppointmentResponseDto> appointments;
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            appointments = appointmentService.findAppointmentsByFilters(
+                    stylistOpt.get().getId(), null, null, from.atStartOfDay(), to.atTime(LocalTime.MAX));
+        } finally {
+            TenantInterceptor.clear();
+        }
+        List<AppointmentResponseDto> filtered = appointments.stream()
+                .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED && a.getStatus() != AppointmentStatus.REJECTED)
+                .sorted((a, b) -> a.getStartDate().compareTo(b.getStartDate()))
+                .toList();
+        if (filtered.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "No tenés citas en ese período.");
+        } else {
+            StringBuilder sb = new StringBuilder("📋 Tu agenda:\n\n");
+            for (AppointmentResponseDto a : filtered) {
+                sb.append("• ").append(a.getStartDate().format(DATETIME_FMT))
+                        .append(" — ").append(a.getService() != null ? a.getService().getName() : "?")
+                        .append(" (").append(a.getClient() != null ? a.getClient().getName() : "?")
+                        .append(") [").append(a.getStatus()).append("]\n");
+            }
+            channel.sendMessage(msg.chatId(), sb.toString());
+        }
+        showMenu(msg, tenantId);
+        updateState(state, STEP_MENU, null);
+    }
+
+    // ----- BLOQUEAR HORARIO -----
+
+    private void startBlock(TelegramMessage msg, ConversationState state, Long tenantId) {
+        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        if (stylistOpt.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        Map<String, String> data = new HashMap<>();
+        data.put("stylistId", String.valueOf(stylistOpt.get().getId()));
+        List<Button> buttons = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i < 7; i++) {
+            LocalDate d = today.plusDays(i);
+            buttons.add(new Button(d.getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es")) + " " + d,
+                    PREFIX_BLOCK_DATE + d));
+        }
+        buttons.add(new Button("◀ Volver", CB_MENU));
+        channel.sendInlineKeyboard(msg.chatId(), "¿Qué día querés bloquear?", buttons);
+        updateState(state, STEP_BLOCK_DATE, data);
+    }
+
+    private void selectBlockDate(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalDate date) {
+        if (date.isBefore(LocalDate.now())) {
+            channel.sendMessage(msg.chatId(), "Esa fecha ya pasó. Elegí otra:");
+            startBlock(msg, state, tenantId);
+            return;
+        }
+        data.put("date", date.toString());
+        showBlockStartOptions(msg, data, tenantId);
+        updateState(state, STEP_BLOCK_START, data);
+    }
+
+    private void showBlockStartOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+        List<LocalTime> times = buildBlockTimes(Long.parseLong(data.get("stylistId")), LocalDate.parse(data.get("date")), tenantId);
+        if (times.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "No hay horarios para bloquear ese día. Elegí otro:");
+            return;
+        }
+        List<Button> buttons = new ArrayList<>(times.stream()
+                .map(t -> new Button(t.format(TIME_FMT), PREFIX_BLOCK_START + t))
+                .toList());
+        buttons.add(new Button("◀ Otro día", CB_MENU));
+        channel.sendInlineKeyboard(msg.chatId(), "¿Desde qué hora?", buttons);
+    }
+
+    private void selectBlockStart(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime start) {
+        LocalDate date = LocalDate.parse(data.get("date"));
+        if (date.atTime(start).isBefore(LocalDateTime.now())) {
+            channel.sendMessage(msg.chatId(), "Esa hora ya pasó. Elegí otra hora de inicio:");
+            showBlockStartOptions(msg, data, tenantId);
+            return;
+        }
+        data.put("start", start.toString());
+        showBlockEndOptions(msg, data, tenantId);
+        updateState(state, STEP_BLOCK_END, data);
+    }
+
+    private void showBlockEndOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+        List<LocalTime> times = buildBlockEndTimes(
+                Long.parseLong(data.get("stylistId")), LocalDate.parse(data.get("date")),
+                LocalTime.parse(data.get("start")), tenantId);
+        if (times.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "No hay horas de fin disponibles desde esa hora. Elegí otro inicio:");
+            showBlockStartOptions(msg, data, tenantId);
+            return;
+        }
+        List<Button> buttons = new ArrayList<>(times.stream()
+                .map(t -> new Button(t.format(TIME_FMT), PREFIX_BLOCK_END + t))
+                .toList());
+        buttons.add(new Button("◀ Cambiar inicio", CB_MENU));
+        channel.sendInlineKeyboard(msg.chatId(), "¿Hasta qué hora?", buttons);
+    }
+
+    private void selectBlockEnd(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime end) {
+        Long stylistId = Long.parseLong(data.get("stylistId"));
+        LocalDate date = LocalDate.parse(data.get("date"));
+        LocalTime start = LocalTime.parse(data.get("start"));
+        if (!end.isAfter(start)) {
+            channel.sendMessage(msg.chatId(), "La hora de fin debe ser posterior a la de inicio:");
+            showBlockEndOptions(msg, data, tenantId);
+            return;
+        }
+        BlockedSlotRequestDto dto = BlockedSlotRequestDto.builder()
+                .stylistId(stylistId)
+                .startDate(date.atTime(start))
+                .endDate(date.atTime(end))
+                .reason("Bloqueado desde el bot")
+                .build();
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            blockedSlotService.create(dto);
+            channel.sendMessage(msg.chatId(),
+                    "✅ Horario bloqueado: " + date + " de " + start.format(TIME_FMT) + " a " + end.format(TIME_FMT) + ".");
+        } catch (Exception e) {
+            log.error("Error bloqueando horario para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
+            channel.sendMessage(msg.chatId(), "No se pudo bloquear ese horario. Intentá de nuevo.");
+        } finally {
+            TenantInterceptor.clear();
+        }
+        showMenu(msg, tenantId);
+        updateState(state, STEP_MENU, null);
+    }
+
+    private List<LocalTime> buildBlockTimes(Long stylistId, LocalDate date, Long tenantId) {
+        List<StylistSchedule> schedules = stylistScheduleRepository
+                .findByStylistIdAndDayAndTenantId(stylistId, date.getDayOfWeek(), tenantId);
+        LocalTime dayStart = schedules.isEmpty()
+                ? LocalTime.of(8, 0)
+                : schedules.stream().map(StylistSchedule::getStartTime).min(LocalTime::compareTo).orElse(LocalTime.of(8, 0));
+        LocalTime dayEnd = schedules.isEmpty()
+                ? LocalTime.of(20, 0)
+                : schedules.stream().map(StylistSchedule::getEndTime).max(LocalTime::compareTo).orElse(LocalTime.of(20, 0));
+        List<LocalTime> times = new ArrayList<>();
+        LocalTime t = dayStart;
+        while (!t.plusMinutes(30).isAfter(dayEnd)) {
+            times.add(t);
+            t = t.plusMinutes(30);
+        }
+        return times;
+    }
+
+    private List<LocalTime> buildBlockEndTimes(Long stylistId, LocalDate date, LocalTime start, Long tenantId) {
+        List<StylistSchedule> schedules = stylistScheduleRepository
+                .findByStylistIdAndDayAndTenantId(stylistId, date.getDayOfWeek(), tenantId);
+        LocalTime dayEnd = schedules.isEmpty()
+                ? LocalTime.of(20, 0)
+                : schedules.stream().map(StylistSchedule::getEndTime).max(LocalTime::compareTo).orElse(LocalTime.of(20, 0));
+        List<LocalTime> times = new ArrayList<>();
+        LocalTime t = start.plusMinutes(30);
+        while (!t.isAfter(dayEnd)) {
+            times.add(t);
+            t = t.plusMinutes(30);
+        }
+        return times;
+    }
+
+    // ----- GESTIONAR CITAS (completar / no-show / cancelar) -----
+
+    private void showStylistAppointments(TelegramMessage msg, ConversationState state, Long tenantId) {
+        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        if (stylistOpt.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        List<AppointmentResponseDto> appointments;
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            appointments = appointmentService.findAppointmentsByFilters(
+                    stylistOpt.get().getId(), null, null, LocalDateTime.now().minusHours(1), null);
+        } finally {
+            TenantInterceptor.clear();
+        }
+        List<AppointmentResponseDto> manageable = appointments.stream()
+                .filter(a -> a.getStatus() == AppointmentStatus.PENDING || a.getStatus() == AppointmentStatus.CONFIRMED)
+                .sorted((a, b) -> a.getStartDate().compareTo(b.getStartDate()))
+                .toList();
+        if (manageable.isEmpty()) {
+            channel.sendMessage(msg.chatId(), "No tenés citas activas para gestionar.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        List<Button> buttons = new ArrayList<>();
+        for (AppointmentResponseDto a : manageable) {
+            String label = a.getStartDate().format(TIME_FMT) + " "
+                    + (a.getService() != null ? a.getService().getName() : "") + " · "
+                    + (a.getClient() != null ? a.getClient().getName() : "");
+            buttons.add(new Button("✅ " + label, PREFIX_APPT_COMPLETE + a.getId()));
+            buttons.add(new Button("🚫 " + label, PREFIX_APPT_NOSHOW + a.getId()));
+            buttons.add(new Button("❌ " + label, PREFIX_APPT_CANCEL + a.getId()));
+        }
+        buttons.add(new Button("◀ Volver", CB_MENU));
+        channel.sendInlineKeyboard(msg.chatId(), "¿Qué querés hacer con cada cita?", buttons);
+        updateState(state, STEP_STYLIST_APPT, null);
+    }
+
+    private void manageAppointmentByCallback(TelegramMessage msg, ConversationState state, Long tenantId, String prefix, String appointmentIdText) {
+        Long appointmentId;
+        try {
+            appointmentId = Long.parseLong(appointmentIdText);
+        } catch (NumberFormatException e) {
+            channel.sendMessage(msg.chatId(), "Cita inválida.");
+            showMenu(msg, tenantId);
+            updateState(state, STEP_MENU, null);
+            return;
+        }
+        boolean ok;
+        TenantInterceptor.setCurrentTenantId(tenantId);
+        try {
+            if (PREFIX_APPT_COMPLETE.equals(prefix)) {
+                ok = appointmentService.completeAppointment(appointmentId);
+            } else if (PREFIX_APPT_NOSHOW.equals(prefix)) {
+                ok = appointmentService.noShowAppointment(appointmentId);
+            } else {
+                ok = appointmentService.cancelAppointmentByStylist(appointmentId);
+            }
+        } catch (Exception e) {
+            log.error("Error gestionando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+            ok = false;
+        } finally {
+            TenantInterceptor.clear();
+        }
+        channel.sendMessage(msg.chatId(), ok
+                ? "✅ Listo."
+                : "No se pudo actualizar esa cita (¿ya no está activa?).");
+        showMenu(msg, tenantId);
         updateState(state, STEP_MENU, null);
     }
 
@@ -578,8 +921,12 @@ public class TelegramUpdateHandler {
                         .orElse(null);
             }
         }
-        return clientRepository.findByTelegramChatId(msg.chatId())
-                .map(client -> (client.getTenant() != null) ? client.getTenant().getId() : null)
+        Optional<Client> client = clientRepository.findByTelegramChatId(msg.chatId());
+        if (client.isPresent() && client.get().getTenant() != null) {
+            return client.get().getTenant().getId();
+        }
+        return stylistRepository.findByTelegramChatId(msg.chatId())
+                .map(stylist -> (stylist.getTenant() != null) ? stylist.getTenant().getId() : null)
                 .orElse(null);
     }
 
@@ -598,9 +945,15 @@ public class TelegramUpdateHandler {
                 });
     }
 
-    private void showMenu(TelegramMessage msg) {
-        channel.sendKeyboard(msg.chatId(), "Hola " + safeName(msg) + "! ¿Qué querés hacer?",
-                List.of("Agendar cita", "Mis citas", "Cancelar cita"));
+    private void showMenu(TelegramMessage msg, Long tenantId) {
+        boolean isStylist = tenantId != null && ensureStylist(msg, tenantId).isPresent();
+        if (isStylist) {
+            channel.sendKeyboard(msg.chatId(), "Hola " + safeName(msg) + "! ¿Qué querés hacer?",
+                    List.of("Agendar cita", "Mis citas", "Cancelar cita", "Ver agenda", "Bloquear horario", "Gestionar citas"));
+        } else {
+            channel.sendKeyboard(msg.chatId(), "Hola " + safeName(msg) + "! ¿Qué querés hacer?",
+                    List.of("Agendar cita", "Mis citas", "Cancelar cita"));
+        }
     }
 
     private void sendGuidance(TelegramMessage msg) {

@@ -17,8 +17,8 @@ INSERT INTO users (id, email, password, role, tenant_id) VALUES (3, 'alice@examp
 INSERT INTO users (id, email, password, role, tenant_id) VALUES (4, 'bob@example.com', '$2a$10$ijbBrguZGkrCu2l4FBiY2uo8FQboCLHdO3e2vm0hRe3LDc/.dQP8K', 'CLIENT', 2);
 
 -- Insertar en Stylist (usa el mismo id que users)
-INSERT INTO stylist (id, name_stylist, phone, id_stylist_room) VALUES (1, 'John Doe', '123456789', 1);
-INSERT INTO stylist (id, name_stylist, phone, id_stylist_room) VALUES (2, 'Jane Smith', '987654321', 2);
+INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (1, 'John Doe', '123456789', 1, '555000111');
+INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (2, 'Jane Smith', '987654321', 2, '555000222');
 
 -- Insertar en Client (usa el mismo id que users)
 INSERT INTO client (id, name_client, phone, telegram_chat_id) VALUES (3, 'Alice Johnson', '5551234', '111111111');

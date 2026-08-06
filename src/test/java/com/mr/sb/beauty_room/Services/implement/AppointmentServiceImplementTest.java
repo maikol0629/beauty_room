@@ -5,6 +5,7 @@ import com.mr.sb.beauty_room.Security.TenantInterceptor;
 import com.mr.sb.beauty_room.entities.*;
 import com.mr.sb.beauty_room.repository.*;
 import com.mr.sb.beauty_room.Services.IBlockedSlotService;
+import com.mr.sb.beauty_room.Services.IMessagingChannel;
 import com.mr.sb.beauty_room.Services.INotificationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,8 @@ class AppointmentServiceImplementTest {
     private IBlockedSlotService blockedSlotService;
     @Mock
     private INotificationService notificationService;
+    @Mock
+    private IMessagingChannel messagingChannel;
 
     @InjectMocks
     private AppointmentServiceImplement appointmentService;
@@ -145,5 +148,125 @@ class AppointmentServiceImplementTest {
 
         assertThat(result).isFalse();
         verify(appointmentRepository, never()).save(any(Appointment.class));
+    }
+
+    @Test
+    void save_shouldNotifyStylistWhenStylistHasTelegramChatId() {
+        stylist.setTelegram_chat_id("555000111");
+
+        LocalDateTime start = LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0);
+
+        AppointmentSaveDto dto = AppointmentSaveDto.builder()
+                .startDate(start)
+                .id_client(client.getId())
+                .id_stylist(stylist.getId())
+                .id_service(service.getId())
+                .build();
+
+        StylistSchedule schedule = StylistSchedule.builder()
+                .id(1L)
+                .stylist(stylist)
+                .day(start.getDayOfWeek())
+                .startTime(LocalTime.of(7, 0))
+                .endTime(LocalTime.of(22, 0))
+                .build();
+
+        when(clientRepository.findByIdAndTenantId(client.getId(), TENANT_ID)).thenReturn(Optional.of(client));
+        when(stylistRepository.findByIdAndTenantId(stylist.getId(), TENANT_ID)).thenReturn(Optional.of(stylist));
+        when(serviceRepository.findByIdAndTenantId(service.getId(), TENANT_ID)).thenReturn(Optional.of(service));
+        when(stylistScheduleRepository.findByStylistIdAndDayAndTenantId(stylist.getId(), start.getDayOfWeek(), TENANT_ID))
+                .thenReturn(List.of(schedule));
+        when(appointmentRepository.existsOverlappingAppointment(eq(stylist.getId()), eq(TENANT_ID), eq(start), any()))
+                .thenReturn(false);
+        when(blockedSlotService.isSlotBlocked(eq(TENANT_ID), anyLong(), any(), any())).thenReturn(false);
+
+        boolean result = appointmentService.save(dto);
+
+        assertThat(result).isTrue();
+        verify(messagingChannel).sendMessage(eq("555000111"), contains("Nueva cita"));
+    }
+
+    @Test
+    void save_shouldNotNotifyStylistWithoutTelegramChatId() {
+        LocalDateTime start = LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0);
+
+        AppointmentSaveDto dto = AppointmentSaveDto.builder()
+                .startDate(start)
+                .id_client(client.getId())
+                .id_stylist(stylist.getId())
+                .id_service(service.getId())
+                .build();
+
+        StylistSchedule schedule = StylistSchedule.builder()
+                .id(1L)
+                .stylist(stylist)
+                .day(start.getDayOfWeek())
+                .startTime(LocalTime.of(7, 0))
+                .endTime(LocalTime.of(22, 0))
+                .build();
+
+        when(clientRepository.findByIdAndTenantId(client.getId(), TENANT_ID)).thenReturn(Optional.of(client));
+        when(stylistRepository.findByIdAndTenantId(stylist.getId(), TENANT_ID)).thenReturn(Optional.of(stylist));
+        when(serviceRepository.findByIdAndTenantId(service.getId(), TENANT_ID)).thenReturn(Optional.of(service));
+        when(stylistScheduleRepository.findByStylistIdAndDayAndTenantId(stylist.getId(), start.getDayOfWeek(), TENANT_ID))
+                .thenReturn(List.of(schedule));
+        when(appointmentRepository.existsOverlappingAppointment(eq(stylist.getId()), eq(TENANT_ID), eq(start), any()))
+                .thenReturn(false);
+        when(blockedSlotService.isSlotBlocked(eq(TENANT_ID), anyLong(), any(), any())).thenReturn(false);
+
+        boolean result = appointmentService.save(dto);
+
+        assertThat(result).isTrue();
+        verify(messagingChannel, never()).sendMessage(anyString(), anyString());
+    }
+
+    @Test
+    void completeAppointment_shouldAcceptPendingOrConfirmed() {
+        Appointment appt = Appointment.builder()
+                .id(1L)
+                .status(AppointmentStatus.PENDING)
+                .tenant(Tenant.builder().id(TENANT_ID).build())
+                .build();
+        when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appt));
+
+        boolean result = appointmentService.completeAppointment(1L);
+
+        assertThat(result).isTrue();
+        verify(appointmentRepository).save(argThat(a -> a.getStatus() == AppointmentStatus.COMPLETED));
+    }
+
+    @Test
+    void noShowAppointment_shouldSetStatusNoShow() {
+        Appointment appt = Appointment.builder()
+                .id(2L)
+                .status(AppointmentStatus.CONFIRMED)
+                .tenant(Tenant.builder().id(TENANT_ID).build())
+                .build();
+        when(appointmentRepository.findById(2L)).thenReturn(Optional.of(appt));
+
+        boolean result = appointmentService.noShowAppointment(2L);
+
+        assertThat(result).isTrue();
+        verify(appointmentRepository).save(argThat(a -> a.getStatus() == AppointmentStatus.NO_SHOW));
+    }
+
+    @Test
+    void cancelAppointmentByStylist_shouldNotifyClientWhenHasTelegramChatId() {
+        client.setTelegram_chat_id("999000999");
+        Appointment appt = Appointment.builder()
+                .id(3L)
+                .status(AppointmentStatus.CONFIRMED)
+                .tenant(Tenant.builder().id(TENANT_ID).build())
+                .client(client)
+                .service(service)
+                .startDate(LocalDateTime.of(2026, 8, 10, 10, 0))
+                .build();
+        when(appointmentRepository.findById(3L)).thenReturn(Optional.of(appt));
+
+        boolean result = appointmentService.cancelAppointmentByStylist(3L);
+
+        assertThat(result).isTrue();
+        verify(appointmentRepository).save(argThat(a -> a.getStatus() == AppointmentStatus.CANCELLED));
+        verify(messagingChannel).sendMessage(eq("999000999"), contains("fue cancelada"));
     }
 }

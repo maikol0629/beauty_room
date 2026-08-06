@@ -3,7 +3,7 @@
 **Stack base:** Spring Boot (backend) + Angular (frontend/panel admin) + MariaDB + Telegram Bot API
 **Punto de partida:** CRUD de estilistas ya implementado en Spring Boot ✅
 **Perfil:** Desarrollador solo, foco en validación rápida
-**Fecha de actualización:** 5 de agosto de 2026
+**Fecha de actualización:** 6 de agosto de 2026
 
 ---
 
@@ -116,18 +116,19 @@
 ## FASE 4 — Flujo del estilista (lado dueño del negocio)
 *Objetivo: el estilista también gestiona su día a día desde Telegram, no solo el cliente agenda.*
 
-**ESTADO ACTUAL:**
-- ✅ Capa de Telegram lista (Fases 2-3 completadas): webhook, `MessagingChannel`, FSM, deep link
-- ❌ **PENDIENTE:** Comandos y lógica de estilista
+**ESTADO ACTUAL: ✅ COMPLETADA (6 de agosto de 2026)**
+- ✅ **Agenda del día/semana:** `/agenda` o "Ver agenda" → menú `AGENDA_HOY` / `AGENDA_SEMANA` (próximos 7 días); lista citas ordenadas excluyendo `CANCELLED`/`REJECTED` (filtra por estilista vía `findAppointmentsByFilters`)
+- ✅ **Bloquear horarios:** `/bloquear` o "Bloquear horario" → flujo fecha → hora inicio → hora fin (callbacks `BLOCK_DATE:`/`BLOCK_START:`/`BLOCK_END:`, pasos de 30 min); horario por defecto 08:00-20:00 si el estilista no tiene `StylistSchedule` ese día; crea `BlockedSlot` con `reason "Bloqueado desde el bot"` vía `IBlockedSlotService.create`
+- ✅ **Notificación al estilista en cada cita nueva:** `AppointmentService.save` → `notifyStylistOfNewAppointment` (mensaje "📅 ¡Nueva cita agendada!" al `telegram_chat_id` del estilista; no-op si no tiene chat id)
+- ✅ **Completada / no-show:** `/gestionar` o "Gestionar citas" → botones por cita `APPT_COMPLETE:<id>` (→ `completeAppointment`, acepta PENDING/CONFIRMED), `APPT_NOSHOW:<id>` (→ `noShowAppointment`, nuevo estado `NO_SHOW`)
+- ✅ **Cancelar desde el estilista con notificación al cliente:** `APPT_CANCEL:<id>` → `cancelAppointmentByStylist` (→ estado `CANCELLED` + `notifyClientOfCancellation` al chat del cliente: "❌ Tu cita del ... fue cancelada por el salón.")
+- ✅ **Menú dinámico por rol:** el estilista (resuelto por `stylistRepository.findByTelegramChatId`) ve 6 opciones (incluye Ver agenda / Bloquear horario / Gestionar citas); el cliente ve solo las 3 de siempre
+- ✅ Campo `telegram_chat_id` en `Stylist` (entity + `findByTelegramChatId`/`findByTelegramChatIdAndTenantId`) + seed en `import.sql`
+- ✅ Tests: 22 en `TelegramUpdateHandlerTest` + 7 en `AppointmentServiceImplementTest` — suite total **53 tests, 0 fallos**
 
-**Acciones requeridas:**
-- [ ] Comando para que el estilista vea su agenda del día/semana
-- [ ] Comando para bloquear horarios manualmente (ej: "no disponible mañana 2-4pm")
-- [ ] Notificación automática al estilista cuando entra una cita nueva
-- [ ] Comando para marcar una cita como completada/no-show (dato valioso para el futuro)
-- [ ] Comando para cancelar una cita desde su lado (con notificación al cliente)
+**Nota técnica:** el estilista se identifica por `telegram_chat_id` en la tabla `stylist` (como el cliente en `client`); el bot resuelve el tenant desde el estado o desde el chat del estilista en `resolveTenant`.
 
-**Entregable de la fase:** el estilista puede operar su agenda completa sin abrir ningún panel web, solo Telegram.
+**Entregable de la fase:** el estilista puede operar su agenda completa sin abrir ningún panel web, solo Telegram. ✅
 
 ---
 
@@ -300,7 +301,7 @@
 | 1 | API REST completa (slots, validación) | ✅ **COMPLETADA** | Sí, valida backend |
 | 2 | Bot: esqueleto + webhook | ✅ **COMPLETADA** | Sí, es el core |
 | 3 | Bot: flujo de agendamiento | ✅ **COMPLETADA** | Sí, es el core |
-| 4 | Bot: flujo del estilista | ❌ No iniciada | Sí, completa el loop |
+| 4 | Bot: flujo del estilista | ✅ **COMPLETADA** | Sí, completa el loop |
 | 5 | Recordatorios automáticos | ❌ No iniciada | Sí, "wow factor" |
 | 6 | Validación con usuarios reales | ❌ No iniciada | **Aquí decides si sigues** |
 | 7 | Iteración por feedback real | ❌ No iniciada | Depende de Fase 6 |
@@ -333,5 +334,18 @@
    - [x] FSM conversacional completo (Fase 3): elegir servicio → fecha → hora → confirmar
    - [x] MVP completo: agendar cita desde Telegram (+ Mis citas + Cancelar cita)
    - **Razón:** Este es tu primer producto validable.
+
+4. **Fase 4 — Flujo del estilista (1 semana): ✅ COMPLETADA**
+   - [x] `/agenda` (día / próximos 7 días) + `/bloquear` (fecha → inicio → fin) + `/gestionar` (completar / no-show / cancelar)
+   - [x] Notificación al estilista en cada cita nueva y al cliente cuando el estilista cancela
+   - [x] Campo `telegram_chat_id` en `Stylist` + menú dinámico por rol
+   - [x] 53 tests OK
+   - **Razón:** Completa el loop operativo sin panel web. Detalle en [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md).
+
+5. **AHORA — Fase 5: Recordatorios automáticos (1 semana): ⏳ PENDIENTE**
+   - [ ] Job `@Scheduled` que revisa citas próximas (24h y 2h antes) y envía recordatorio al cliente vía Telegram con botones confirmar/cancelar
+   - [ ] Resumen diario al estilista cada mañana con las citas del día
+   - [ ] Marcado en `Notification` para evitar duplicados
+   - **Razón:** Es el "wow factor" que reduce ausencias (dolor #1). Depende de Fase 4 (estilista ya opera en el bot).
 
 **Timeline estimado para MVP completo:** 4-5 semanas si trabajas full-time en esto.

@@ -8,6 +8,7 @@ import com.mr.sb.beauty_room.DTOS.stylist.StylistResponseDto;
 import com.mr.sb.beauty_room.Exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.Services.IAppointmentService;
 import com.mr.sb.beauty_room.Security.TenantInterceptor;
+import com.mr.sb.beauty_room.Services.IMessagingChannel;
 
 import com.mr.sb.beauty_room.entities.*;
 import com.mr.sb.beauty_room.repository.*;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,9 +39,10 @@ public class AppointmentServiceImplement implements IAppointmentService {
     private final StylistScheduleRepository stylistScheduleRepository;
     private final IBlockedSlotService blockedSlotService;
     private final INotificationService notificationService;
+    private final IMessagingChannel messagingChannel;
 
     @Autowired
-    public AppointmentServiceImplement(AppointmentRepository appointmentRepository, ClientRepository clientRepository, StylistRepository stylistRepository, ServiceRepository serviceRepository, StylistScheduleRepository stylistScheduleRepository, IBlockedSlotService blockedSlotService, INotificationService notificationService) {
+    public AppointmentServiceImplement(AppointmentRepository appointmentRepository, ClientRepository clientRepository, StylistRepository stylistRepository, ServiceRepository serviceRepository, StylistScheduleRepository stylistScheduleRepository, IBlockedSlotService blockedSlotService, INotificationService notificationService, IMessagingChannel messagingChannel) {
         this.appointmentRepository = appointmentRepository;
         this.clientRepository = clientRepository;
         this.stylistRepository = stylistRepository;
@@ -47,6 +50,7 @@ public class AppointmentServiceImplement implements IAppointmentService {
         this.stylistScheduleRepository = stylistScheduleRepository;
         this.blockedSlotService = blockedSlotService;
         this.notificationService = notificationService;
+        this.messagingChannel = messagingChannel;
     }
 
     @Override
@@ -112,6 +116,7 @@ public class AppointmentServiceImplement implements IAppointmentService {
                             "La franja horaria solicitada no está disponible para el estilista " + stylist.get().getId());
                 }
                 appointmentRepository.save(appointment);
+                notifyStylistOfNewAppointment(stylist.get(), client.get(), service.get(), appointment);
                 return true;
             }
         }
@@ -217,12 +222,14 @@ public class AppointmentServiceImplement implements IAppointmentService {
         return false;
     }
 
+    @Transactional
     @Override
     public boolean completeAppointment(long id) {
         Optional<Appointment> opt = findAppointmentForTenant(id);
         if (opt.isPresent()) {
             Appointment appointment = opt.get();
-            if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            if (appointment.getStatus() != AppointmentStatus.PENDING
+                    && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
                 return false;
             }
             appointment.setStatus(AppointmentStatus.COMPLETED);
@@ -230,6 +237,65 @@ public class AppointmentServiceImplement implements IAppointmentService {
             return true;
         }
         return false;
+    }
+
+    @Transactional
+    @Override
+    public boolean noShowAppointment(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() != AppointmentStatus.PENDING
+                    && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.NO_SHOW);
+            appointmentRepository.save(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
+    @Override
+    public boolean cancelAppointmentByStylist(long id) {
+        Optional<Appointment> opt = findAppointmentForTenant(id);
+        if (opt.isPresent()) {
+            Appointment appointment = opt.get();
+            if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+                return false;
+            }
+            appointment.setStatus(AppointmentStatus.CANCELLED);
+            appointmentRepository.save(appointment);
+            notifyClientOfCancellation(appointment);
+            return true;
+        }
+        return false;
+    }
+
+    private void notifyStylistOfNewAppointment(Stylist stylist, Client client, Service service, Appointment appointment) {
+        if (stylist == null || stylist.getTelegram_chat_id() == null || stylist.getTelegram_chat_id().isBlank()) {
+            return;
+        }
+        String clientName = (client != null && client.getName_client() != null) ? client.getName_client() : "Cliente";
+        String serviceName = (service != null) ? service.getName_service() : "Servicio";
+        messagingChannel.sendMessage(stylist.getTelegram_chat_id(),
+                "📅 ¡Nueva cita agendada!\n\n"
+                        + "• Cliente: " + clientName + "\n"
+                        + "• Servicio: " + serviceName + "\n"
+                        + "• Fecha: " + appointment.getStartDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "\n"
+                        + "• Hora: " + appointment.getStartDate().format(DateTimeFormatter.ofPattern("HH:mm")));
+    }
+
+    private void notifyClientOfCancellation(Appointment appointment) {
+        Client client = appointment.getClient();
+        if (client == null || client.getTelegram_chat_id() == null || client.getTelegram_chat_id().isBlank()) {
+            return;
+        }
+        String serviceName = (appointment.getService() != null) ? appointment.getService().getName_service() : "cita";
+        String date = appointment.getStartDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        messagingChannel.sendMessage(client.getTelegram_chat_id(),
+                "❌ Tu cita del " + date + " (" + serviceName + ") fue cancelada por el salón.");
     }
 
     private Optional<Appointment> findAppointmentForTenant(long id) {

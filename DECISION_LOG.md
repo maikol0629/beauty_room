@@ -1,8 +1,8 @@
 # 🏗️ Decisiones Arquitectónicas — Beauty Room MVP
 
-**Versión:** 1.4  
-**Fecha:** 5 de agosto de 2026  
-**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fases 1 (API REST), 2 (bot esqueleto) y 3 (FSM agendamiento) completadas. Resto pendiente de fases futuras.
+**Versión:** 1.5  
+**Fecha:** 6 de agosto de 2026  
+**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fases 1 (API REST), 2 (bot esqueleto), 3 (FSM agendamiento) y 4 (flujo del estilista) completadas. Resto pendiente de fases futuras.
 
 > **Nota de implementación (5 de agosto de 2026):** las decisiones 1 (Shared DB/Schema), 2 (resolución por JWT + header), 3 (queries explícitas con tenant_id) y 4 (JWT simple con claim `tenantId`) quedaron implementadas en el código. Detalle de lo hecho y gotchas en [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md).
 >
@@ -11,6 +11,8 @@
 > **Fase 2 (mismo día):** bot Telegram en modo **webhook** (elección del usuario por deep linking). Decisiones: (a) se descartó `org.telegram:telegrambots-spring-boot-starter` (es de Spring Boot 2.7) y se usó `telegrambots-springboot-webhook-starter:7.11.0` + `telegrambots-client:7.11.0`; (b) el onboarding de tenant se hace por **deep link `?start=<tenantKey>`** (ver decisión 5, actualizada); (c) la lógica del bot vive en `TelegramUpdateHandler` (reutilizada por el controller y el starter); (d) los beans del bot son `@ConditionalOnProperty(telegram.bot.token)` para que la app arranque sin token y los tests no requieran red; (e) `ConversationState` guarda `tenantId` como columna simple (nullable), no relación JPA. Detalle en [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md).
 >
 > **Fase 3 (mismo día):** FSM conversacional de agendamiento. Decisiones: (a) **estado y datos en `ConversationState`** con `current_step` (`MENU`/`CHOOSE_SERVICE`/`CHOOSE_DATE`/`CHOOSE_TIME`/`CONFIRM`/`CANCEL_SELECT`) y `data` como JSON (`{serviceId, stylistId, date, time}`) con Jackson; (b) **selección por InlineKeyboards** con callbacks prefijados (`SERVICE:`, `DATE:`, `TIME:`, `CANCEL_APPT:`) en vez de texto libre (fecha/hora igual aceptan texto); (c) el **tenant se persiste en el estado** (los callbacks no repiten el deep link) y se usa `TenantInterceptor.setCurrentTenantId`/`clear` porque los services requieren ThreadLocal y el webhook no es HTTP; (d) el **cliente se auto-crea** desde el chat (email sintético `tg_<chatId>@bot.local`, password aleatorio BCrypt) si `findByTelegramChatIdAndTenantId` no lo encuentra; (e) la **concurrencia** se resuelve re-llamando `save()` y capturando `AppointmentConflictException` (re-prompt de horas, sin perder el hilo); (f) el servicio es el que define al estilista (cada `Service` pertenece a un `Stylist`), así elegir servicio implica estilista. Detalle en [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md).
+>
+> **Fase 4 (6 de agosto):** flujo del estilista desde Telegram. Decisiones: (a) el **estilista se identifica por `telegram_chat_id`** (igual que el cliente), con el campo agregado a `Stylist` + `findByTelegramChatId`/`findByTelegramChatIdAndTenantId` — sin login, la asociación chat↔estilista es manual por ahora (onboarding self-service es Fase 10); (b) se reutiliza **el mismo `TelegramUpdateHandler` y el mismo FSM** en lugar de un handler separado: el menú es dinámico según `ensureStylist()`; (c) las **notificaciones viven en `AppointmentService`** (no en el handler): al guardar una cita se notifica al estilista y `cancelAppointmentByStylist` notifica al cliente, reutilizando `IMessagingChannel` — así cualquier canal (API, bot, futuro WhatsApp) dispara la misma notificación; (d) nuevo estado de cita **`NO_SHOW`** como valor de negocio para el futuro (reportes/insights); (e) `completeAppointment` pasa a aceptar **`PENDING` o `CONFIRMED`** (antes solo `CONFIRMED`) para que el estilista pueda cerrar citas sin que el cliente las haya confirmado; (f) el **bloqueo de horarios** usa el flujo fecha→inicio→fin con callbacks y pasos de 30 min, con **horario por defecto 08:00-20:00** si el estilista no tiene `StylistSchedule` ese día. Detalle en [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md).
 
 ---
 
@@ -441,7 +443,7 @@ public class Notification {
 
 ---
 
-## Próximas decisiones (fases 3+)
+## Próximas decisiones (fases 5+)
 
 - [ ] ¿Timezone handling? (Usar ZonedDateTime en Phase 5)
 - [ ] ¿Pagina automatización de recordatorios? (Phase 5)
@@ -450,5 +452,5 @@ public class Notification {
 
 ---
 
-**Documento versión:** 1.4  
-**Próxima revisión:** Después de completar Fase 4 (flujo del estilista)
+**Documento versión:** 1.5  
+**Próxima revisión:** Después de completar Fase 5 (recordatorios automáticos)
