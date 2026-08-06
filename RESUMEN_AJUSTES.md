@@ -55,12 +55,14 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
    - ✅ JWT incluye `tenantId`
    - ✅ Seed de 3 tenants + tests de aislamiento (14 tests OK, verificación manual cross-tenant vía API)
 
-2. **Bot de Telegram (Fases 2-3) — CORE DEL PRODUCTO**
-   - ❌ Cero código de integración Telegram
-   - ❌ No existe endpoint `/telegram/webhook`
-   - ❌ No existe interfaz `MessagingChannel`
-   - ❌ No existe FSM conversacional
-   - **Impacto:** Producto no es funcional sin el bot
+2. **Bot de Telegram (Fases 2-3) — CORE DEL PRODUCTO — Fases 2-3 ✅ COMPLETADAS (5 de agosto de 2026)**
+   - ✅ Webhook `/api/telegram/webhook` (público) + `telegrambots-springboot-webhook-starter:7.11.0` / `telegrambots-client:7.11.0`
+   - ✅ Interfaz `MessagingChannel` (`sendMessage`, `sendKeyboard`, `sendInlineKeyboard`, `parseUpdate`) + adapter `TelegramChannel`
+   - ✅ Entidad `ConversationState` (FSM: chat_id, tenant_id, current_step, data JSON)
+   - ✅ Onboarding por **deep linking** `?start=tenantKey` (un solo bot multitenant) → requisito incorporado a la documentación
+   - ✅ **Fase 3:** FSM completo (servicio → fecha → hora → confirmar), InlineKeyboards, "Mis citas", "Cancelar cita", cliente creado automáticamente desde el chat, manejo de 409 (re-elegir hora)
+   - ❌ Falta Fase 4 (flujo del estilista) y Fase 5 (recordatorios)
+   - **Impacto:** el MVP de agendamiento ya funciona de punta a punta; falta el lado estilista + recordatorios para el loop completo.
 
 3. **Lógica de disponibilidad (Fase 1) — ✅ COMPLETADA (5 de agosto de 2026)**
    - ✅ Método `getAvailableSlots(stylistId, serviceId, date)` implementado y expuesto en `GET /api/appointment/slots` (público con X-Tenant-ID)
@@ -156,16 +158,22 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 
 ---
 
-### Semana 4-5: **FASE 2-3 — Bot Telegram (MVP)**
+### Semana 5: **FASE 3 — Bot Telegram: agendamiento (MVP) ✅ COMPLETADA (5 de agosto de 2026)**
 ```
-1. Setup bot Telegram + webhook
-2. Crear interfaz MessagingChannel
-3. Implementar FSM conversacional
-4. Flujo: agendar cita desde Telegram
-5. Recordatorios básicos
+1. ✅ FSM conversacional: servicio → fecha → hora → confirmar
+2. ✅ Asociar chat a Client (deep link ya da el tenant; cliente auto-creado si no existe)
+3. ✅ InlineKeyboardMarkup para elegir opciones
+4. ✅ Reutilizar GET /api/appointment/slots (getAvailableSlots) + POST /api/appointment/save
+5. ✅ Mis citas + Cancelar cita + manejo de 409 (concurrencia)
 ```
 
-**¿Por qué?** Este es tu MVP validable con usuarios reales.
+### Semana 6-7: **FASE 4-5 — Flujo estilista + recordatorios (loop completo)**
+```
+1. FASE 4: agenda del día/semana, bloquear horarios, marcar completada/no-show, cancelar (notifica cliente)
+2. FASE 5: recordatorios 24h y 2h antes (@Scheduled + Notification + envío Telegram)
+```
+
+**¿Por qué?** El MVP de agendamiento (Fase 3) ya es validable; Fase 4-5 cierra el loop.
 
 ---
 
@@ -174,18 +182,18 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 | Riesgo | Severidad | Cómo se mitiga |
 |---|---|---|
 | ~~Sin multitenant → un usuario ve datos de otro~~ | ✅ RESUELTO | Fase 0 completada, aislamiento verificado |
-| Bot no existe → no hay producto | 🔴 CRÍTICA | Timeline de 4-5 semanas realista |
+| ~~Bot sin agendamiento → no hay MVP~~ | ✅ RESUELTO | Fases 2-3 (webhook+deep link+FSM) ✅; falta Fase 4 (estilista) |
 | ~~Endpoints no validados → discovery de bugs tarde~~ | ✅ RESUELTO | E2E + Postman + Swagger (FASE 1) |
 | ~~JWT sin tenant_id → fácil atacar otros tenants~~ | ✅ RESUELTO | JWT incluye `tenantId` (FASE 0) |
-| ~~Sin calculateAvailableSlots() → bot puede double-book~~ | ✅ RESUELTO | 409 Conflict verificado (FASE 1) |
+| ~~Sin calculateAvailableSlots() → bot puede double-book~~ | ✅ RESUELTO | 409 Conflict verificado (FASE 1) + re-prompt en bot (FASE 3) |
 
 ---
 
 ## 💡 Próximos pasos inmediatos
 
-1. **Importar** `beauty_room_MVP.postman_collection.json` en Postman (opcional, E2E ya cubierto)
-2. **Comenzar Fase 2:** Bot de Telegram (BotFather, webhook, `MessagingChannel`, FSM)
-3. **Configurar** el `telegram_chat_id` de clientes reales cuando el bot esté activo
+1. **Probar el agendamiento en local:** completar `telegram.bot.token`/`username`, `ngrok http 8080`, `./mvnw spring-boot:run`, abrir `https://t.me/<bot>?start=salon-maria-001` y agendar de punta a punta
+2. **Comenzar Fase 4:** FSM del estilista (plan.md Fase 4) — agenda, bloquear horarios, completar/no-show, cancelar
+3. **Después Fase 5:** recordatorios automáticos (`@Scheduled` + `Notification`)
 
 ---
 
@@ -203,11 +211,13 @@ Se realizó una auditoría completa del proyecto Beauty Room y se ajustó el roa
 - [plan.md](plan.md) — Roadmap actualizado
 - [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md) — Guía implementación multitenant (COMPLETADA, con resumen de implementación)
 - [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) — Guía verificación API REST (COMPLETADA)
+- [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md) — Guía bot Telegram: webhook + deep link (COMPLETADA)
+- [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md) — Guía FSM de agendamiento (COMPLETADA)
 - [beauty_room_MVP.postman_collection.json](beauty_room_MVP.postman_collection.json) — Collection Postman
-- [pom.xml](pom.xml) — Dependencias (Java 21, Spring Boot 3.2.3, MariaDB)
+- [pom.xml](pom.xml) — Dependencias (Java 21, Spring Boot 3.2.3, MariaDB, Telegram 7.11.0)
 - [src/main/resources/application.properties](src/main/resources/application.properties) — Config (MariaDB localhost)
 
 ---
 
 **Última actualización:** 5 de agosto de 2026  
-**Próxima auditoría recomendada:** Después de completar FASE 2
+**Próxima auditoría recomendada:** Después de completar FASE 4

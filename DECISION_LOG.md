@@ -1,12 +1,16 @@
 # 🏗️ Decisiones Arquitectónicas — Beauty Room MVP
 
-**Versión:** 1.2  
+**Versión:** 1.4  
 **Fecha:** 5 de agosto de 2026  
-**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fase 1 completada (validación API + telegram_chat_id + slots). Resto pendiente de fases futuras.
+**Estado:** ✅ Decisiones 1-4 y 8 IMPLEMENTADAS (Fase 0 completada). Fases 1 (API REST), 2 (bot esqueleto) y 3 (FSM agendamiento) completadas. Resto pendiente de fases futuras.
 
 > **Nota de implementación (5 de agosto de 2026):** las decisiones 1 (Shared DB/Schema), 2 (resolución por JWT + header), 3 (queries explícitas con tenant_id) y 4 (JWT simple con claim `tenantId`) quedaron implementadas en el código. Detalle de lo hecho y gotchas en [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md).
 >
 > **Fase 1 (mismo día):** API REST validada. Decisiones tomadas: (a) no-doble-booking devuelve **409 Conflict** vía `AppointmentConflictException` (reutilizando el GlobalExceptionHandler existente) en vez de un código de negocio; (b) las citas `CANCELLED`/`REJECTED` **no** bloquean slots (`existsOverlappingAppointment` los excluye); (c) el endpoint de disponibilidad se expuso como `GET /api/appointment/slots` público (alias de `/availability`) con resolución por header `X-Tenant-ID`; (d) el campo `telegram_chat_id` de `Client` mantiene snake_case en Java y se accede con `@Query` explícita (las queries derivadas `findByTelegramChatId...` no se generan bien); (e) documentación con SpringDoc 2.3.0 (UI en `/swagger-ui.html`). Detalle en [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md).
+>
+> **Fase 2 (mismo día):** bot Telegram en modo **webhook** (elección del usuario por deep linking). Decisiones: (a) se descartó `org.telegram:telegrambots-spring-boot-starter` (es de Spring Boot 2.7) y se usó `telegrambots-springboot-webhook-starter:7.11.0` + `telegrambots-client:7.11.0`; (b) el onboarding de tenant se hace por **deep link `?start=<tenantKey>`** (ver decisión 5, actualizada); (c) la lógica del bot vive en `TelegramUpdateHandler` (reutilizada por el controller y el starter); (d) los beans del bot son `@ConditionalOnProperty(telegram.bot.token)` para que la app arranque sin token y los tests no requieran red; (e) `ConversationState` guarda `tenantId` como columna simple (nullable), no relación JPA. Detalle en [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md).
+>
+> **Fase 3 (mismo día):** FSM conversacional de agendamiento. Decisiones: (a) **estado y datos en `ConversationState`** con `current_step` (`MENU`/`CHOOSE_SERVICE`/`CHOOSE_DATE`/`CHOOSE_TIME`/`CONFIRM`/`CANCEL_SELECT`) y `data` como JSON (`{serviceId, stylistId, date, time}`) con Jackson; (b) **selección por InlineKeyboards** con callbacks prefijados (`SERVICE:`, `DATE:`, `TIME:`, `CANCEL_APPT:`) en vez de texto libre (fecha/hora igual aceptan texto); (c) el **tenant se persiste en el estado** (los callbacks no repiten el deep link) y se usa `TenantInterceptor.setCurrentTenantId`/`clear` porque los services requieren ThreadLocal y el webhook no es HTTP; (d) el **cliente se auto-crea** desde el chat (email sintético `tg_<chatId>@bot.local`, password aleatorio BCrypt) si `findByTelegramChatIdAndTenantId` no lo encuentra; (e) la **concurrencia** se resuelve re-llamando `save()` y capturando `AppointmentConflictException` (re-prompt de horas, sin perder el hilo); (f) el servicio es el que define al estilista (cada `Service` pertenece a un `Stylist`), así elegir servicio implica estilista. Detalle en [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md).
 
 ---
 
@@ -210,23 +214,23 @@ List<Stylist> findByTenantIdAndStatus(Long tenantId, StylistStatus status);
 - ❌ Alto costo de mantenimiento
 - ❌ Confuso para usuarios
 
-### Flujo de primer mensaje:
+### Flujo de primer mensaje (✅ IMPLEMENTADO en Fase 2 vía deep linking):
 
 ```
-Usuario abre chat y escribe: /start
+Cliente abre el deep link de su salón:  https://t.me/<bot>?start=salon-maria-001
+Telegram envía al webhook:              /start salon-maria-001
 
-Bot responde:
-  "¿Eres dueño de un salón de belleza?"
-  [SI] [NO]
+Bot:
+  → TenantRepository.findByTenantKey("salon-maria-001") → tenant_id=1
+  → Guarda conversation_state: chat_id + tenant_id
+  → Responde saludo + keyboard (Agendar cita / Mis citas / Cancelar cita)
 
-SI → Bot pide código de invitación o teléfono
-       Valida contra DB → obtiene tenant_id
-       Guarda conversación_state: tenant_id + chat_id
-
-NO → Bot pregunta: "¿Cuál es el teléfono de tu estilista?"
-      Busca en DB → obtiene tenant_id
-      Muestra servicios de ese tenant
+Si el /start NO trae payload:
+  → ClientRepository.findByTelegramChatId(chat_id) → tenant_id
+  → Si tampoco: pide al usuario abrir el deep link de su salón
 ```
+
+> El deep link `?start=<tenantKey>` sustituye al "código de invitación o teléfono" que se había previsto antes: es el mismo mecanismo, pero el tenantKey viaja en el propio enlace y no hay que tipear nada.
 
 ---
 
@@ -446,5 +450,5 @@ public class Notification {
 
 ---
 
-**Documento versión:** 1.2  
-**Próxima revisión:** Después de completar Fase 2 (bot Telegram)
+**Documento versión:** 1.4  
+**Próxima revisión:** Después de completar Fase 4 (flujo del estilista)

@@ -74,57 +74,42 @@
 ## FASE 2 — Bot de Telegram: esqueleto y conexión
 *Objetivo: que el bot hable con tu backend. Todavía sin lógica de negocio compleja.*
 
-**ESTADO ACTUAL:**
-- ❌ **PENDIENTE:** Bot creado en Telegram
-- ❌ **PENDIENTE:** Configuración de webhook
-- ❌ **PENDIENTE:** Endpoint `/telegram/webhook`
-- ❌ **PENDIENTE:** Interfaz `MessagingChannel`
-- ❌ **PENDIENTE:** Mapeo `telegram_chat_id` ↔ `tenant_id`
-- ❌ **PENDIENTE:** FSM / `ConversationState`
-- ❌ **NOVEDADES:** Dependencia de Telegram Bot API (a agregar en pom.xml) — recomendado: `telegrambots-spring-boot-starter`
+**ESTADO ACTUAL: ✅ COMPLETADA (5 de agosto de 2026)**
+- ✅ Bot creado en Telegram (BotFather) — token/username los pone el usuario en `application.properties`
+- ✅ Configuración de webhook (`telegram.bot.*`; setWebhook automático al arrancar con URL pública HTTPS)
+- ✅ Endpoint `/api/telegram/webhook` (público) que recibe updates
+- ✅ Interfaz `MessagingChannel` (`sendMessage`, `sendKeyboard`, `parseUpdate`) + adapter `TelegramChannel`
+- ✅ Mapeo `telegram_chat_id` ↔ `tenant_id` (por `Client.telegram_chat_id` o por deep link `start=tenantKey`)
+- ✅ FSM / `ConversationState` (entidad + repositorio + service)
+- ✅ **Dependencia Telegram:** se usó `org.telegram:telegrambots-springboot-webhook-starter:7.11.0` + `telegrambots-client:7.11.0` (el `telegrambots-spring-boot-starter` sugerido antes es de Spring Boot 2.7, incompatible con Boot 3.2.3)
+- ✅ Bot responde "Hola" con keyboard (Agendar cita / Mis citas / Cancelar cita) cuando resuelve tenant
 
-**Acciones requeridas:**
-1. [ ] Agregar dependencia: `org.telegram:telegrambots-spring-boot-starter`
-2. [ ] Crear clase `TelegramBotService` que extienda `TelegramLongPollingBot` (o mejor: webhook usando `TelegramWebhookBot`)
-3. [ ] Implementar interfaz `MessagingChannel` (metódos: `sendMessage()`, `sendKeyboard()`, `parseUpdate()`)
-4. [ ] Crear entidad `ConversationState` (chat_id, tenant_id, currentStep, data JSON)
-5. [ ] Endpoint POST `/api/telegram/webhook` que reciba updates de Telegram
-6. [ ] Lógica básica: bot responde "Hola" con keyboard inicial (Login/Register/Schedule)
-7. [ ] Mapeo `telegram_chat_id` en `Client` para identificar quién consulta
+**DECISIÓN CRÍTICA (confirmada y documentada):** UN SOLO BOT multitenant. El onboarding del tenant se hace por **deep linking**: `https://t.me/<bot>?start=<tenantKey>` → Telegram envía `/start <tenantKey>` → el bot resuelve el `Tenant` por `tenantKey` y guarda `chat_id → tenant_id` en `ConversationState`.
 
-**DECISIÓN CRÍTICA:** ¿Un bot multitenant o bot por tenant?
-→ **Recomendación:** UN SOLO BOT multitenant. El estilista se loguea en el bot la primera vez (código de invitación o número de teléfono), y el bot enruta según chat_id.
+**Entregable de la fase:** Bot responde "hola" cuando le escribís, y tu backend logea correctamente quién escribió (chat_id + tenant resuelto). ✅
 
-**Entregable de la fase:** Bot responde "hola" cuando le escribís, y tu backend logea correctamente quién escribió (chat_id + tenant resuelto).
+**Verificación:** 30 tests OK (`TelegramUpdateHandlerTest`, `TelegramChannelTest`, `ConversationStateServiceImplementTest`, `TelegramWebhookE2ETest`). Detalle en [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md).
 
 ---
 
 ## FASE 3 — Flujo conversacional: agendar cita (el core del producto)
 *Objetivo: un cliente final puede agendar una cita hablando con el bot, de punta a punta.*
 
-**ESTADO ACTUAL:**
-- ✅ Lógica de backend disponible (citas, servicios, horarios)
-- ❌ **PENDIENTE:** Toda la capa de Telegram (Fase 2 bloqueante)
-- ❌ **PENDIENTE:** FSM conversacional
-- ❌ **PENDIENTE:** Keyboards inline de Telegram
-- ❌ **PENDIENTE:** Manejo de cancelación/reagendado
+**ESTADO ACTUAL: ✅ COMPLETADA (5 de agosto de 2026)**
+- ✅ FSM conversacional completo en `TelegramUpdateHandler` (estados `MENU`, `CHOOSE_SERVICE`, `CHOOSE_DATE`, `CHOOSE_TIME`, `CONFIRM`, `CANCEL_SELECT`)
+- ✅ Comandos: `/start`, `/schedule`, `/agendar`, `/miscitas`, `/cancel`, `/cancelar`, `/reschedule` (stub informativo)
+- ✅ **Flujo de agendamiento:** servicios del tenant → fechas disponibles (próximos 7 días, calculadas con `getAvailableSlots`) → horas → confirmación → `AppointmentSaveDto` → `IAppointmentService.save`
+- ✅ `InlineKeyboardMarkup` (`sendInlineKeyboard` en `IMessagingChannel`/`TelegramChannel`, DTO `Button`, filas de hasta 3)
+- ✅ **Asociación chat → Client:** `findByTelegramChatIdAndTenantId`; si no existe, se crea el `Client` (email sintético `tg_<chatId>@bot.local`, nombre desde Telegram, `telegram_chat_id`)
+- ✅ **Concurrencia / no-doble-booking:** `AppointmentConflictException` (409) capturada → se re-ofrecen horas sin perder el hilo (`CHOOSE_TIME`)
+- ✅ **Mis citas:** lista de citas del cliente (fechas desc, máximo 5) con estado
+- ✅ **Cancelar cita:** lista citas futuras PENDING/CONFIRMED con botones `CANCEL_APPT:<id>` → `IAppointmentService.cancelAppointment`
+- ✅ **Manejo de errores conversacionales:** fechas/horas inválidas re-preguntan, estado perdido → vuelve a menú, tenancy se persiste en `ConversationState.tenantId` para sobrevivir entre mensajes
+- ✅ Tests: 15 unitarios de FSM + E2E webhook (deep link) OK — suite total **41 tests, 0 fallos**
 
-**Acciones requeridas (depende de Fase 2):**
-1. [ ] Diseñar árbol de conversación en diagrama (ej: Miro o papel, luego código)
-2. [ ] Implementar comandos: `/start`, `/schedule`, `/cancel`, `/reschedule`
-3. [ ] Flujo conversacional:
-   - Usuario inicia → Bot pregunta si es cliente nuevo o existente
-   - Si nuevo → registra teléfono/nombre, obtiene tenant (estilista)
-   - Si existente → lo identifica por `telegram_chat_id` o teléfono
-   - Bot lista servicios disponibles del estilista/tenant
-   - Cliente elige → bot muestra fechas disponibles
-   - Cliente elige fecha → bot muestra horas (usando `calculateAvailableSlots`)
-   - Cliente elige hora → confirmación → crea la cita → confirma con mensaje final
-4. [ ] `InlineKeyboardMarkup` para no pedir texto libre (mejor UX)
-5. [ ] Validación de concurrencia: si dos clientes agendan el mismo slot a la vez, ganar el primero
-6. [ ] Manejo de errores conversacionales (usuario presiona botón expirado, se cae el chat, etc.)
+**Nota técnica:** `IAppointmentService.save`/`cancelAppointment`/`findAppointmentsByClientID` dependen de `TenantInterceptor` (ThreadLocal HTTP). En el bot no hay request HTTP, así que el handler hace `TenantInterceptor.setCurrentTenantId(tenantId)` antes de llamar y `clear()` en `finally`.
 
-**Entregable de la fase:** Vos mismo, desde tu Telegram personal, podrías agendarte una cita ficticia de principio a fin sin usar Postman.
+**Entregable de la fase:** Agendás una cita ficticia desde tu Telegram personal de punta a punta (deep link → servicio → fecha → hora → confirmar), sin Postman. ✅
 
 ---
 
@@ -132,7 +117,7 @@
 *Objetivo: el estilista también gestiona su día a día desde Telegram, no solo el cliente agenda.*
 
 **ESTADO ACTUAL:**
-- ❌ **PENDIENTE:** Toda la capa de Telegram (Fase 2 bloqueante)
+- ✅ Capa de Telegram lista (Fases 2-3 completadas): webhook, `MessagingChannel`, FSM, deep link
 - ❌ **PENDIENTE:** Comandos y lógica de estilista
 
 **Acciones requeridas:**
@@ -313,8 +298,8 @@
 |---|---|---|---|
 | 0 | Backend multitenant + Tenant entity | ✅ **COMPLETADA** | Sí, es la base |
 | 1 | API REST completa (slots, validación) | ✅ **COMPLETADA** | Sí, valida backend |
-| 2 | Bot: esqueleto + webhook | ❌ No iniciada | Sí, es el core |
-| 3 | Bot: flujo de agendamiento | ❌ No iniciada | Sí, es el core |
+| 2 | Bot: esqueleto + webhook | ✅ **COMPLETADA** | Sí, es el core |
+| 3 | Bot: flujo de agendamiento | ✅ **COMPLETADA** | Sí, es el core |
 | 4 | Bot: flujo del estilista | ❌ No iniciada | Sí, completa el loop |
 | 5 | Recordatorios automáticos | ❌ No iniciada | Sí, "wow factor" |
 | 6 | Validación con usuarios reales | ❌ No iniciada | **Aquí decides si sigues** |
@@ -341,11 +326,12 @@
    - [x] Swagger documentado
    - **Estado:** 16 tests OK; doble-booking → 409 verificado vía API.
 
-3. **FINALMENTE — Fase 2-3 (2-3 semanas):**
-   - [ ] Setup bot Telegram + webhook
-   - [ ] Interfaz `MessagingChannel`
-   - [ ] FSM conversacional
-   - [ ] MVP completo: agendar cita desde Telegram
+3. **FINALMENTE — Fase 2-3 (2-3 semanas): ✅ COMPLETADA**
+   - [x] Setup bot Telegram + webhook (`telegrambots-springboot-webhook-starter` 7.11.0, endpoint `/api/telegram/webhook`)
+   - [x] Interfaz `MessagingChannel` + adapter `TelegramChannel`
+   - [x] `ConversationState` (FSM básico) + deep linking `?start=tenantKey`
+   - [x] FSM conversacional completo (Fase 3): elegir servicio → fecha → hora → confirmar
+   - [x] MVP completo: agendar cita desde Telegram (+ Mis citas + Cancelar cita)
    - **Razón:** Este es tu primer producto validable.
 
 **Timeline estimado para MVP completo:** 4-5 semanas si trabajas full-time en esto.

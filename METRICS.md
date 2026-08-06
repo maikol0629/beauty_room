@@ -26,9 +26,12 @@
 
 | Métrica | Objetivo | Actual | ✅/❌ |
 |---|---|---|---|
-| Bot responde "Hola" | ✅ 1 segundo | ❌ No existe | ❌ |
-| Webhook recibe updates Telegram | ✅ Delivery < 1s | ❌ No implementado | ❌ |
-| Flujo de agendamiento funcional | ✅ E2E working | ❌ No existe | ❌ |
+| Bot responde "Hola" (F2) | ✅ 1 segundo | ✅ Respuesta + keyboard (verificado E2E y manual con deep link) | ✅ |
+| Webhook recibe updates Telegram (F2) | ✅ Delivery < 1s | ✅ `/api/telegram/webhook` + deep link `?start=tenantKey` | ✅ |
+| Resolución tenant por chat (F2) | ✅ chat_id → tenant_id | ✅ deep link / `Client.telegram_chat_id` → `ConversationState.tenantId` | ✅ |
+| Flujo de agendamiento funcional (F3) | ✅ E2E working | ✅ servicio → fecha → hora → confirmar → save (15 tests FSM) | ✅ |
+| Mis citas + Cancelar cita (F3) | ✅ Funcional | ✅ lista citas + cancelación con confirmación | ✅ |
+| Concurrencia / no-doble-booking (F3) | ✅ primer gana | ✅ 409 `AppointmentConflictException` → re-elegir hora | ✅ |
 | Tasa de conversación exitosa | > 80% | N/A | ⏳ |
 | Bot latency (respuesta < 2s) | < 2 sec | N/A | ⏳ |
 
@@ -182,16 +185,16 @@ Status del Build:     ✅ PASSING
   - Tiempo promedio:  45 sec
   - Últimos 7 días:   100% pass rate
 
-Tests:                ⚠️  PARTIAL
-  - Unitarios:        ✅ 15/15 passing
-  - Integración:      ❌ 0/0 (no iniciados)
-  - E2E:              ❌ 0/0 (no iniciados)
+Tests:                ✅ 30/30 passing (5 nuevos en Fase 2)
+  - Unitarios:        ✅ 30/30 passing
+  - Integración:      ⏳ Pendiente Fase 3
+  - E2E:              ✅ 1/1 (flujo Telegram vía TelegramUpdateHandler) + verificación manual con deep link
   - Cobertura:        52% (apunta a 70%)
 
 Code Quality:         ⚠️  NEEDS IMPROVEMENT
   - SonarQube Grade:  C (apunta a B)
   - Technical Debt:   5 días hombre
-  - Bloqueantes:      2 (seguridad multitenant, no-doble-booking)
+  - Bloqueantes:      1 (FSM Fase 3 pendiente — el 2º "no-doble-booking" quedó resuelto en Fase 1)
 ```
 
 ### Staging Environment
@@ -215,19 +218,21 @@ Uptime:               N/A
 🟢 VERDE: OK
 
 ROJO:
-  🔴 Bot no existe (BLOQUEANTE)
-  🔴 Sin validación de solapamiento de citas vía API
+  🔴 FSM del estilista no implementado (Fase 4, BLOQUEANTE para loop completo)
 
 AMARILLO:
   🟡 Swagger sin documentación
-  🟡 Endpoints sin tests E2E
-  🟡 telegram_chat_id falta
+  🟡 telegram.bot.token sin configurar en local
+  🟡 Recordatorios automáticos pendientes (Fase 5)
 
 VERDE:
   🟢 Multitenant implementado y aislado ✅
   🟢 Backend compilation OK
   🟢 Database connection OK
   🟢 JWT working (incluye tenantId)
+  🟢 Webhook + deep link Telegram funcionales ✅
+  🟢 409 Conflict no-doble-booking verificado ✅
+  🟢 Agendamiento completo vía bot (servicio→fecha→hora→confirmar) ✅
 ```
 
 ---
@@ -239,22 +244,21 @@ VERDE:
 ```
 FASE 0  █████████████████████  100% (Semana 1-2) ✅
 FASE 1  █████████████████████  100% (Semana 3) ✅
-FASE 2-3░░░░░░░░░░░░░░░░░░░░░  0% (Semana 4-5)
+FASE 2  █████████████████████  100% (Semana 4) ✅ (esqueleto bot: webhook+deep link)
+FASE 3  █████████████████████  100% (Semana 5) ✅ (FSM agendamiento)
 FASE 4-5░░░░░░░░░░░░░░░░░░░░░  0% (Semana 6-7)
 FASE 6  ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 8-10)
 FASE 7+ ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 11+)
 
-Total  █████░░░░░░░░░░░░░░░░  23% de fases completadas
+Total  ██████████░░░░░░░░░░░  50% de fases completadas
 ```
 
 ### Commits por semana
 
 ```
-Semana 1: 0 commits (planeada)
-Semana 2: 0 commits (planeada)
-Semana 3: 0 commits (planeada)
-Semana 4: 0 commits (planeada)
-Semana 5: 0 commits (planeada)
+Semana 1-3:  Fases 0-1 (multitenant + API REST)
+Semana 4:    Fase 2 (bot esqueleto: webhook + deep link)
+Semana 5:    Fase 3 (FSM agendamiento) — en curso
 
 Promedio esperado: 8-10 commits/semana
 ```
@@ -287,7 +291,9 @@ Tareas pendientes
 | Tema | Lección | Fuente |
 |---|---|---|
 | Multitenant | Usar `@JsonIgnore` en `tenant` (no `@JsonBackReference`) y `jackson-datatype-hibernate6` para evitar errores de proxies lazy (`ByteBuddyInterceptor`); `findBy...AndTenantId` no siempre genera query derivada válida | Fase 0 |
-| Bot design | (Se aprenderá en Fase 2-3) | Bot MVP |
+| Telegram (7.11.0) | Usar `telegrambots-springboot-webhook-starter:7.11.0` (el clásico `telegrambots-spring-boot-starter` es de Boot 2.7); los beans del bot deben ser `@ConditionalOnProperty(telegram.bot.token)` para arrancar sin token; resolver el tenant por **deep link `?start=tenantKey`** (un solo bot multitenant) | Fase 2 |
+| FSM (Fase 3) | `@Service` choca con `entities.Service` → usar FQN en la anotación; `InlineKeyboardRow` (7.11.0) para `InlineKeyboardMarkup`; fuera de HTTP hay que `TenantInterceptor.setCurrentTenantId`/`clear`; persistir `tenantId` en `ConversationState` (los callbacks no repiten el deep link); clientes del bot con email sintético `tg_<chatId>@bot.local` | Fase 3 |
+| Bot design | (Se aprenderá en Fase 3) | Bot MVP |
 | Validación con usuarios | (Se aprenderá en Fase 6) | Pilotos |
 
 ---
@@ -303,12 +309,12 @@ Tareas pendientes
 
 ## 📅 Próximas revisiones
 
-- **5 de agosto 2026** → ✅ Fin de Fase 1, API validada (COMPLETADA)
-- **2 de septiembre 2026** → Fin de Fase 2-3, MVP bot working
+- **5 de agosto 2026** → ✅ Fin de Fase 3, MVP de agendamiento working (COMPLETADA)
+- **2 de septiembre 2026** → Fin de Fase 4-5, loop completo (estilista + recordatorios)
 - **16 de septiembre 2026** → Fin de Fase 6, validación usuarios reales
 
 ---
 
 **Mantenedor:** Desarrollador solo  
 **Última actualización:** 5 de agosto 2026 17:00 UTC  
-**Próxima revisión:** Fin de Fase 2-3 (2 de septiembre)
+**Próxima revisión:** Fin de Fase 4-5 (2 de septiembre)

@@ -1,6 +1,6 @@
 # AGENTS.md — Beauty Room
 
-Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en salones de belleza. SaaS multitenant (Fase 0 COMPLETADA) con bot de Telegram (aún NO implementado). Toda la documentación del proyecto está en español en la raíz.
+Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en salones de belleza. SaaS multitenant (Fase 0 COMPLETADA) con bot de Telegram (Fases 2-3 COMPLETADAS). Toda la documentación del proyecto está en español en la raíz.
 
 ## Comandos
 - Ejecutar la app: `./mvnw spring-boot:run` (desde la raíz)
@@ -32,8 +32,10 @@ Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en
 - `IBlockedSlotService.isSlotBlocked(Long tenantId, Long stylistId, ...)` recibe tenantId como primer parámetro.
 
 ## Contexto de producto (importante)
-- Proyecto en fase MVP. Multitenant (Fase 0) COMPLETADO. API REST validada (Fase 1) COMPLETADA: slots, no-doble-booking 409, `telegram_chat_id` en `Client`, Swagger, Postman collection `beauty_room_MVP.postman_collection.json`, `AppointmentControllerE2ETest` (16 tests OK). Bloqueante pendiente: bot de Telegram (Fases 2-3).
-- PRÓXIMA TAREA = Fase 2: seguir `plan.md` (bot Telegram: dependencia `telegrambots-spring-boot-starter`, clase `TelegramBotService`, interfaz `MessagingChannel`, entidad `ConversationState`, endpoint webhook, mapping `telegram_chat_id` ↔ tenant).
+- Proyecto en fase MVP. Multitenant (Fase 0) COMPLETADO. API REST validada (Fase 1) COMPLETADA. Bot Telegram esqueleto (Fase 2) COMPLETADA: webhook `/api/telegram/webhook` (público), dependencias `telegrambots-springboot-webhook-starter:7.11.0` + `telegrambots-client:7.11.0` (NO el `telegrambots-spring-boot-starter` clásico, que es de Boot 2.7), `IMessagingChannel`/`TelegramChannel`, entidad `ConversationState`, deep linking `?start=tenantKey` para resolver tenant. FSM de agendamiento (Fase 3) COMPLETADA: servicio → fecha → hora → confirmar, `InlineKeyboardMarkup`, "Mis citas", "Cancelar cita", cliente auto-creado, manejo de 409. 41 tests OK.
+- El bot se registra solo si `telegram.bot.token` está configurado (beans `@ConditionalOnProperty`). Config en `application.properties`: `telegram.bot.token`, `telegram.bot.username`, `telegram.bot.path`, `telegram.bot.webhook-url`.
+- PRÓXIMA TAREA = Fase 4: seguir `plan.md` (flujo del estilista desde Telegram: ver agenda del día/semana, bloquear horarios, marcar completada/no-show, cancelar con notificación al cliente).
+- El FSM del bot vive en `Services/implement/TelegramUpdateHandler`. OJO: la clase usa `@org.springframework.stereotype.Service` (FQN) porque `entities.Service` choca con el import; estados en `ConversationState.currentStep` y datos JSON en `.data`; callbacks prefijados `SERVICE:`/`DATE:`/`TIME:`/`CANCEL_APPT:`; fuera de HTTP los services requieren `TenantInterceptor.setCurrentTenantId(tenantId)` + `clear()` (ver `ensureClient`/`confirmAppointment`).
 - Roadmap en `plan.md`; estado en `PROGRESS.md`; decisiones de arquitectura en `DECISION_LOG.md`. Léelos antes de cambios de arquitectura.
 - La skill `.opencode/skills/analista-senior/AS.md` sirve para auditorías/diagnóstico del estado del proyecto.
 - Trabajo activo en la rama `appmod/java-upgrade-20251218222941` (no en `main`).

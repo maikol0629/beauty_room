@@ -1,21 +1,23 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
 **Actualizado:** 5 de agosto de 2026  
-**Próxima revisión:** Después de Fase 2-3
+**Próxima revisión:** Después de Fase 4
 
 ---
 
 ## 🎯 Progreso General del Proyecto
 
 ```
-███████████████████████████████░░░░░░░░░░░░░  (70% completado)
+██████████████████████████████████████████░░░░  (83% completado)
 
 ✅ Backend: 100% entidades creadas
 ✅ Autenticación: JWT implementado
 ✅ APIs: Controllers CRUD funcionales
 ✅ Multitenant: IMPLEMENTADO (Fase 0 completada)
 ✅ API REST validada: slots, no-doble-booking 409, telegram_chat_id, Swagger (Fase 1)
-❌ Bot Telegram: NO INICIADO (BLOQUEANTE)
+✅ Bot Telegram: esqueleto + webhook + deep link (Fase 2 completada)
+✅ Bot Telegram: FSM de agendamiento + Mis citas + Cancelar (Fase 3 completada)
+❌ Bot Telegram: flujo del estilista (Fase 4)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -100,24 +102,27 @@ Estado: ✅ COMPLETADA (5 de agosto de 2026)
 Descripción: Bot conectado, webhook activo, FSM básico
 Timeline: 1 semana (después de Fase 1)
 Prioridad: 🔴 CRÍTICA (es el core)
-Estado: ❌ NO INICIADA
+Estado: ✅ COMPLETADA (5 de agosto de 2026)
 
 ┌─────────────────────────────────────────┐
 │ Subtareas:                              │
 ├─────────────────────────────────────────┤
-│ [ ] Crear bot en BotFather              │
-│ [ ] Setup webhook en Spring             │
-│ [ ] Endpoint /telegram/webhook          │
-│ [ ] Interfaz MessagingChannel           │
-│ [ ] TelegramChannel adapter             │
-│ [ ] ConversationState entidad           │
-│ [ ] FSM básico implementado             │
-│ [ ] Bot responde "Hola" + keyboard      │
+│ [x] Crear bot en BotFather (token)      │
+│ [x] Setup webhook en Spring             │
+│ [x] Endpoint /api/telegram/webhook      │
+│ [x] Interfaz MessagingChannel           │
+│ [x] TelegramChannel adapter             │
+│ [x] ConversationState entidad           │
+│ [x] FSM básico (deep link + /start)     │
+│ [x] Bot responde "Hola" + keyboard      │
 ├─────────────────────────────────────────┤
-│ Entregable: Bot says "Hola"             │
-│ Bloqueante para: Fase 3                 │
+│ Entregable: Bot says "Hola" ✅          │
+│ Verificación: 30 tests OK (unit + E2E)  │
+│ Bloqueante para: Fase 3 (DESBLOQUEADA)  │
 └─────────────────────────────────────────┘
 ```
+
+**Documentación:** [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md) (incluye decisión de deep linking `?start=tenantKey` y cómo probar en local con ngrok).
 
 ---
 
@@ -127,26 +132,31 @@ Estado: ❌ NO INICIADA
 Descripción: Cliente agenda cita completamente vía Telegram
 Timeline: 1 semana (después de Fase 2)
 Prioridad: 🔴 CRÍTICA (MVP funcional)
-Estado: ❌ NO INICIADA
+Estado: ✅ COMPLETADA (5 de agosto de 2026)
 
 ┌─────────────────────────────────────────┐
 │ Subtareas:                              │
 ├─────────────────────────────────────────┤
-│ [ ] Diseñar árbol de conversación       │
-│ [ ] Comandos: /start, /schedule, etc.   │
-│ [ ] Flujo: Autenticación en bot         │
-│ [ ] Flujo: Seleccionar servicio         │
-│ [ ] Flujo: Seleccionar fecha            │
-│ [ ] Flujo: Seleccionar hora             │
-│ [ ] Flujo: Confirmación                 │
-│ [ ] Crear Appointment en BD             │
-│ [ ] Inline keyboards                    │
-│ [ ] Manejo de errores conversacionales  │
+│ [x] Diseñar árbol de conversación       │
+│ [x] Comandos: /start, /schedule, /cancel│
+│ [x] Flujo: Identificar/crear cliente    │
+│ [x] Flujo: Seleccionar servicio         │
+│ [x] Flujo: Seleccionar fecha            │
+│ [x] Flujo: Seleccionar hora             │
+│ [x] Flujo: Confirmación                 │
+│ [x] Crear Appointment en BD             │
+│ [x] Inline keyboards                    │
+│ [x] Mis citas + Cancelar cita           │
+│ [x] Manejo de errores conversacionales  │
+│ [x] Concurrencia (409 → re-elegir hora) │
 ├─────────────────────────────────────────┤
-│ Entregable: MVP completo funcionando    │
+│ Entregable: MVP de agendamiento ✅      │
+│ Verificación: 41 tests OK (15 FSM)      │
 │ Bloqueante para: Fase 6 (validación)    │
 └─────────────────────────────────────────┘
 ```
+
+**Documentación:** [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md)
 
 ---
 
@@ -274,7 +284,8 @@ Estado: ❌ NO INICIADA
 ```
 Semana 1-2:     ███░░░░░░░░░░░░░░░░░  FASE 0: Multitenant ✅
 Semana 3:       ░░░███░░░░░░░░░░░░░░  FASE 1: API REST ✅
-Semana 4-5:     ░░░░░██████░░░░░░░░░  FASE 2-3: Bot MVP
+Semana 4:       ░░░░░███░░░░░░░░░░░░  FASE 2: Bot esqueleto ✅
+Semana 5:       ░░░░░░░███░░░░░░░░░░  FASE 3: Bot MVP agendar ✅
 Semana 6-7:     ░░░░░░░░░░██████░░░░  FASE 4-5: Flujos completos
 Semana 8-10:    ░░░░░░░░░░░░░░░░███░  FASE 6: Validación real
 Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FASE 7: Iteración
@@ -292,7 +303,7 @@ Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FA
 | ID | Riesgo | Severidad | Cómo mitigar |
 |---|---|---|---|
 | R1 | Sin multitenant → security issue | ✅ RESUELTO | Fase 0 completada, aislamiento verificado |
-| R2 | Bot no existe → no hay producto | 🔴 CRÍTICA | Timeline realista (4-5 sem) |
+| R2 | Bot sin flujo de estilista → loop incompleto | 🟡 ALTA | Fases 2-3 (agendamiento) ✅; falta Fase 4 (estilista) |
 | R3 | Doble-booking de citas | ✅ RESUELTO | 409 Conflict + query excluye CANCELLED (F1) |
 | R4 | JWT sin tenant_id → fácil de atacar | ✅ RESUELTO | JWT incluye `tenantId` claim (F0) |
 | R5 | Endpoints no validados | ✅ RESUELTO | Postman collection + tests E2E (F1) |
@@ -321,6 +332,8 @@ Antes de empezar Fase 0 (completado):
 | [plan.md](plan.md) | Roadmap detallado (13 fases) |
 | [CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md) | Guía paso-a-paso multitenant |
 | [CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md) | Guía verificación API REST |
+| [CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md) | Guía bot Telegram (webhook + deep link) |
+| [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md) | Guía FSM de agendamiento (Fase 3) |
 | [DECISION_LOG.md](DECISION_LOG.md) | Decisiones arquitectónicas explicadas |
 | [RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md) | Qué cambió en el plan |
 | [PROGRESS.md](PROGRESS.md) | Este archivo — estado general |
@@ -330,13 +343,13 @@ Antes de empezar Fase 0 (completado):
 ## 🎯 Próximo Paso Inmediato
 
 ```
-1. Leer CHECKLIST_FASE_1.md (verificado) y plan.md Fase 2
-2. Importar beauty_room_MVP.postman_collection.json en Postman y ejecutar flujo E2E manual
-3. Fase 2: Bot Telegram — BotFather, webhook, FSM
+1. Probar el agendamiento completo en local (ngrok + deep link + Fase 3)
+2. Fase 4: FSM del estilista (agenda del día, bloquear horarios, completar/no-show, cancelar)
+3. Fase 5: recordatorios automáticos (@Scheduled)
 ```
 
 ---
 
 **Última actualización:** 5 de agosto de 2026 17:00 UTC  
 **Responsable:** Auditoría automática + Copilot  
-**Próximo review:** Después de Fase 2-3
+**Próximo review:** Después de Fase 4

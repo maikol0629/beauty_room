@@ -37,6 +37,7 @@ public class SecurityConfig {
                 "/api/service/public",
                 "/api/appointment/availability",
                 "/api/appointment/slots",
+                "/api/telegram/webhook",
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
                 "/swagger-ui.html"

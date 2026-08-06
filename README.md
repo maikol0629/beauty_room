@@ -8,14 +8,15 @@ Backend Spring Boot para agendamiento de citas en salones de belleza (SaaS multi
 
 ## 📊 Estado Actual del Proyecto
 
-**Progreso general:** 70% completado
+**Progreso general:** 73% completado
 
 ✅ **Backend creado (100%):** 10+ entidades, 10+ Controllers, autenticación JWT  
 ✅ **Multitenant (100%):** Fase 0 completada — entidad Tenant, aislamiento por tenant verificado  
 ✅ **API REST validada (100%):** Fase 1 completada — slots, no-doble-booking 409, `telegram_chat_id`, Swagger, Postman collection, tests E2E  
-❌ **Bot Telegram (0%):** BLOQUEANTE — core del producto  
+✅ **Bot Telegram esqueleto (100%):** Fase 2 completada — webhook `/api/telegram/webhook`, `MessagingChannel`, `ConversationState`, deep linking `?start=tenantKey`, bot responde con keyboard  
+❌ **Bot Telegram flujo de agendamiento (0%):** BLOQUEANTE — core del producto (Fase 3)
 
-**Próximas 12 semanas:** Focus en Fases 2-3 (bot MVP)
+**Próximas 12 semanas:** Focus en Fase 3 (bot MVP)
 
 ---
 
@@ -37,8 +38,10 @@ Backend Spring Boot para agendamiento de citas en salones de belleza (SaaS multi
 2. **[PROGRESS.md](PROGRESS.md)** — Dashboard visual de progreso
 3. **[CHECKLIST_FASE_0.md](CHECKLIST_FASE_0.md)** — Guía de la implementación multitenant (COMPLETADA)
 4. **[CHECKLIST_FASE_1.md](CHECKLIST_FASE_1.md)** — Guía de verificación API REST (COMPLETADA)
-5. **[DECISION_LOG.md](DECISION_LOG.md)** — Decisiones arquitectónicas explicadas
-6. **[RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md)** — Qué cambió en el plan original
+5. **[CHECKLIST_FASE_2.md](CHECKLIST_FASE_2.md)** — Guía del bot Telegram, webhook + deep link (COMPLETADA)
+6. **[CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md)** — Guía del FSM de agendamiento (COMPLETADA)
+7. **[DECISION_LOG.md](DECISION_LOG.md)** — Decisiones arquitectónicas explicadas
+8. **[RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md)** — Qué cambió en el plan original
 
 ---
 
@@ -55,14 +58,30 @@ El backend quedó validado y documentado el 5 de agosto de 2026:
 
 ---
 
+## ✅ Bot Telegram esqueleto (Fase 2 — COMPLETADA)
+
+El bot quedó conectado al backend el 5 de agosto de 2026:
+
+- **Webhook:** `POST /api/telegram/webhook` (público) recibe los updates de Telegram. Se registra `setWebhook` automáticamente al arrancar si `telegram.bot.webhook-url` está configurado (URL pública HTTPS, ej: ngrok).
+- **Librería:** `telegrambots-springboot-webhook-starter:7.11.0` + `telegrambots-client:7.11.0` (compatibles con Spring Boot 3.2.3; el starter clásico `telegrambots-spring-boot-starter` es de Boot 2.7).
+- **Onboarding por deep linking (un solo bot multitenant):** cada salón usa `https://t.me/<bot>?start=<tenantKey>` → el bot resuelve el `Tenant` por `tenantKey` y guarda `chat_id → tenant_id` en `ConversationState`.
+- **`MessagingChannel`:** interfaz (`sendMessage`, `sendKeyboard`, `parseUpdate`) + adapter `TelegramChannel`, reutilizable para WhatsApp (Fase 12).
+- **Respuesta:** al resolver tenant, el bot saluda con keyboard (Agendar cita / Mis citas / Cancelar cita) y loguea `chat_id + username + tenantId`.
+- **Config:** `telegram.bot.token`, `telegram.bot.username`, `telegram.bot.path`, `telegram.bot.webhook-url` en `application.properties`. Sin token, la app arranca igual y el bot no se registra.
+- **Tests:** 30 tests verdes (incluye `TelegramUpdateHandlerTest`, `TelegramChannelTest`, `TelegramWebhookE2ETest`).
+
+**Probar en local:** `ngrok http 8080` → copiar la URL HTTPS en `telegram.bot.webhook-url` → `./mvnw spring-boot:run` → abrir `https://t.me/<bot>?start=salon-maria-001` desde tu Telegram.
+
+---
+
 ## 🚨 Lo que FALTA (Bloqueantes)
 
-### 1. FASE 2-3: Bot de Telegram (❌ 0% completada)
+### 1. FASE 3: Bot Telegram — flujo de agendamiento (❌ 0% completada)
 
-El core del producto — agendamiento vía Telegram bot.
+El core del producto — un cliente agenda una cita hablando con el bot de punta a punta.
 
-**Status:** Bloqueante de MVP.  
-**Timeline:** 2-3 semanas (después de Fase 1)
+**Status:** Bloqueante de MVP. La Fase 2 (webhook + FSM básico + deep link) ya está lista; falta el FSM conversacional completo.  
+**Timeline:** 1 semana (después de Fase 2)
 
 ---
 
@@ -84,16 +103,18 @@ curl http://localhost:8080/api/stylist/public -H 'X-Tenant-ID: 1'
 
 ---
 
-## ✅ Cómo continuar (Fase 2)
+## ✅ Cómo continuar (Fase 3)
 
 ```bash
-# 1. Leer la documentación (30-60 min)
-# Orden: plan.md → PROGRESS.md → CHECKLIST_FASE_1.md (hecha) → plan.md Fase 2
+# 1. Completar el bot en application.properties
+#    telegram.bot.token / telegram.bot.username
 
-# 2. Validar la API con Postman (opcional, collection ya creada)
-# Importar beauty_room_MVP.postman_collection.json
+# 2. Probar el bot en local (opcional pero recomendado)
+#    ngrok http 8080 → telegram.bot.webhook-url=https://xxx.ngrok.io/api/telegram/webhook
+#    ./mvnw spring-boot:run → abrir https://t.me/<bot>?start=salon-maria-001
 
-# 3. Fase 2: Bot Telegram (BotFather, webhook, FSM)
+# 3. Fase 3: FSM conversacional de agendamiento (plan.md Fase 3)
+#    servicio → fecha → hora → confirmar, usando GET /api/appointment/slots y POST /api/appointment/save
 ```
 
 ---
