@@ -8,7 +8,7 @@
 ## 🎯 Progreso General del Proyecto
 
 ```
-█████████████████████████████████████████████░░  (96% completado)
+███████████████████████████████████████████████░  (99% completado)
 
 ✅ Backend: 100% entidades creadas
 ✅ Autenticación: JWT implementado
@@ -19,6 +19,7 @@
 ✅ Bot Telegram: FSM de agendamiento + Mis citas + Cancelar (Fase 3 completada)
 ✅ Bot Telegram: flujo del estilista — agenda, bloquear, completar/no-show/cancelar (Fase 4 completada)
 ✅ Recordatorios automáticos: 24h/2h + resumen diario + deduplicación (Fase 5 completada)
+✅ Panel de administración Thymeleaf: login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR (Fase 6 completada)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -153,7 +154,7 @@ Estado: ✅ COMPLETADA (5 de agosto de 2026)
 ├─────────────────────────────────────────┤
 │ Entregable: MVP de agendamiento ✅      │
 │ Verificación: 41 tests OK (15 FSM)      │
-│ Bloqueante para: Fase 6 (validación)    │
+│ Bloqueante para: Fase 7 (validación)    │
 └─────────────────────────────────────────┘
 ```
 
@@ -208,7 +209,7 @@ Estado: ✅ COMPLETADA (6 de agosto de 2026)
 ├─────────────────────────────────────────┤
 │ Entregable: MVP con loop completo ✅    │
 │ Verificación: 68 tests OK               │
-│ Bloqueante para: Fase 6 (validación)    │
+│ Bloqueante para: Fase 6 (panel admin)   │
 └─────────────────────────────────────────┘
 ```
 
@@ -216,11 +217,42 @@ Estado: ✅ COMPLETADA (6 de agosto de 2026)
 
 ---
 
-### FASE 6 — Validación con usuarios reales
+### FASE 6 — Panel de administración y autonomía del estilista
+
+```
+Descripción: Panel web del estilista (Thymeleaf) para gestionar el negocio sin el bot
+Timeline: 1 semana (después de Fase 5)
+Prioridad: 🟡 MEDIA (autonomía, complementa el loop)
+Estado: ✅ COMPLETADA (6 de agosto de 2026)
+
+┌─────────────────────────────────────────┐
+│ Subtareas:                              │
+├─────────────────────────────────────────┤
+│ [x] Login del tenant/estilista (sesión) │
+│ [x] CRUD visual de servicios y precios  │
+│ [x] CRUD visual de horarios             │
+│ [x] Bloqueos recurrentes de horarios    │
+│ [x] Link público de agenda + QR         │
+│ [x] Vista de citas con estado           │
+│ [x] Vista de clientes                   │
+│ [x] Edición de estilista (chat_id)      │
+│ [x] Seguridad: 2 cadenas (panel + API)  │
+├─────────────────────────────────────────┤
+│ Entregable: Estilista autónomo vía web ✅
+│ Verificación: 76 tests OK (8 nuevos)    │
+│ Bloqueante para: Fase 7 (validación)    │
+└─────────────────────────────────────────┘
+```
+
+**Documentación:** [CHECKLIST_FASE_6.md](CHECKLIST_FASE_6.md)
+
+---
+
+### FASE 7 — Validación con usuarios reales
 
 ```
 Descripción: Piloto con 10-15 estilistas reales
-Timeline: 2-3 semanas (después de Fase 5)
+Timeline: 2-3 semanas (después de Fase 6)
 Prioridad: 🔴 CRÍTICA (valida existencia)
 Estado: ❌ NO INICIADA
 
@@ -235,19 +267,19 @@ Estado: ❌ NO INICIADA
 │ [ ] Documentar fricción/problemas       │
 ├─────────────────────────────────────────┤
 │ DECISIÓN CRÍTICA:                       │
-│ ¿Estilistas reales usan el bot?         │
-│ SÍ → Continúa Phase 7                   │
+│ ¿Estilistas reales usan el bot/panel?   │
+│ SÍ → Continúa Fase 8                    │
 │ NO → Pivotar (cambiar idea)             │
 └─────────────────────────────────────────┘
 ```
 
 ---
 
-### FASE 7 — Iteración por feedback
+### FASE 8 — Iteración por feedback
 
 ```
 Descripción: Ajustes basados en feedback real
-Timeline: 1-2 semanas (depende de Fase 6)
+Timeline: 1-2 semanas (depende de Fase 7)
 Prioridad: 🟡 MEDIA (varía según feedback)
 Estado: ❌ NO INICIADA
 
@@ -261,15 +293,15 @@ EVITAR: Dashboards, reportes, IA, integraciones pago
 
 ---
 
-### FASE 8-10 — Frontend, self-service, billing
+### FASE 9-10 — Monetización y self-service
 
 ```
-Descripción: Panel Angular, onboarding automático, monetización
-Timeline: 3-4 semanas (después de Fase 6)
+Descripción: Billing y onboarding automático (alta de estilistas sin intervención)
+Timeline: 3-4 semanas (después de Fase 7)
 Prioridad: 🟢 BAJA (no es crítico para MVP)
 Estado: ❌ NO INICIADA
 
-⚠️  NO hacer antes de validar Phase 6
+⚠️  NO hacer antes de validar Fase 7
 ```
 
 ---
@@ -295,8 +327,9 @@ Semana 3:       ░░░███░░░░░░░░░░░░░░  FA
 Semana 4:       ░░░░░███░░░░░░░░░░░░  FASE 2: Bot esqueleto ✅
 Semana 5:       ░░░░░░░███░░░░░░░░░░  FASE 3: Bot MVP agendar ✅
 Semana 6-7:     ░░░░░░░░░░██████░░░░  FASE 4: Flujo estilista ✅ (semana 6) | FASE 5: Recordatorios ✅ (semana 7)
-Semana 8-10:    ░░░░░░░░░░░░░░░░███░  FASE 6: Validación real
-Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FASE 7: Iteración
+Semana 8:       ░░░░░░░░░░░░░░░████░  FASE 6: Panel de administración ✅
+Semana 9-11:    ░░░░░░░░░░░░░░░░░░██  FASE 7: Validación real
+Semana 12-13:   ░░░░░░░░░░░░░░░░░░░█  FASE 8: Iteración
 
 █ = Tiempo de desarrollo (estimado)
 ░ = Tiempo de espera/validación/feedback
@@ -315,7 +348,7 @@ Semana 11-12:   ░░░░░░░░░░░░░░░░░░░█  FA
 | R3 | Doble-booking de citas | ✅ RESUELTO | 409 Conflict + query excluye CANCELLED (F1) |
 | R4 | JWT sin tenant_id → fácil de atacar | ✅ RESUELTO | JWT incluye `tenantId` claim (F0) |
 | R5 | Endpoints no validados | ✅ RESUELTO | Postman collection + tests E2E (F1) |
-| R6 | Estilistas no usan el bot | 🟡 ALTA | Validar en Fase 6 |
+| R6 | Estilistas no usan el bot/panel | 🟡 ALTA | Validar en Fase 7 |
 | R7 | Escalabilidad de BD | 🟢 MEDIA | Fase 11, no es MVP |
 
 ---
@@ -344,6 +377,7 @@ Antes de empezar Fase 0 (completado):
 | [CHECKLIST_FASE_3.md](CHECKLIST_FASE_3.md) | Guía FSM de agendamiento (Fase 3) |
 | [CHECKLIST_FASE_4.md](CHECKLIST_FASE_4.md) | Guía flujo del estilista (Fase 4) |
 | [CHECKLIST_FASE_5.md](CHECKLIST_FASE_5.md) | Guía recordatorios automáticos (Fase 5) |
+| [CHECKLIST_FASE_6.md](CHECKLIST_FASE_6.md) | Guía panel de administración (Fase 6) |
 | [DECISION_LOG.md](DECISION_LOG.md) | Decisiones arquitectónicas explicadas |
 | [RESUMEN_AJUSTES.md](RESUMEN_AJUSTES.md) | Qué cambió en el plan |
 | [PROGRESS.md](PROGRESS.md) | Este archivo — estado general |
@@ -356,7 +390,8 @@ Antes de empezar Fase 0 (completado):
 1. Probar el agendamiento completo en local (ngrok + deep link + Fase 3)
 2. ✅ Fase 4 COMPLETADA: FSM del estilista (agenda del día, bloquear horarios, completar/no-show, cancelar)
 3. ✅ Fase 5 COMPLETADA: recordatorios automáticos (@Scheduled) — 24h y 2h antes + resumen diario al estilista
-4. Fase 6: validación con usuarios reales (early adopters)
+4. ✅ Fase 6 COMPLETADA: panel de administración Thymeleaf (login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR)
+5. Fase 7: validación con usuarios reales (early adopters)
 ```
 
 ---

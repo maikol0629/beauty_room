@@ -10,7 +10,7 @@ import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.ServiceRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import java.util.Objects;
 import java.util.List;
 import java.util.Optional;
@@ -18,11 +18,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @org.springframework.stereotype.Service
+@RequiredArgsConstructor
 public class ServiceServiceImplement implements IServiceService {
-    @Autowired
-    private ServiceRepository serviceRepository;
-    @Autowired
-    private StylistRepository stylistRepository;
+    private final ServiceRepository serviceRepository;
+    private final StylistRepository stylistRepository;
 
     @Override
     public List<ServiceResponseDto> findAll() {

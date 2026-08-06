@@ -7,7 +7,7 @@ import com.mr.sb.beauty_room.Services.IServiceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +18,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/service")
 @Tag(name = "Services", description = "Gestión de servicios")
+@RequiredArgsConstructor
 public class ServiceController {
 
-    @Autowired
-    private IServiceService serviceService;
+    private final IServiceService serviceService;
 
     @GetMapping("/public")
     @Operation(summary = "Listar servicios (público)",

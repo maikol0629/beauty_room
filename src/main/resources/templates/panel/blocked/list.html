@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Bloqueos — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <h2>Bloqueos de agenda</h2>
+    <a class="btn" th:href="@{/panel/blocked/new}">+ Nuevo bloqueo</a>
+  </div>
+  <table>
+    <thead>
+    <tr>
+      <th>Estilista</th>
+      <th>Inicio</th>
+      <th>Fin</th>
+      <th>Motivo</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="b : ${blocked}">
+      <td th:text="${stylistNames[b.stylistId]}">Estilista</td>
+      <td th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy HH:mm')}">01/01/2026 09:00</td>
+      <td th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+      <td th:text="${b.reason}">Motivo</td>
+      <td>
+        <form style="display:inline" th:action="@{/panel/blocked/{id}/delete(id=${b.id})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-danger btn-sm"
+                  onclick="return confirm('¿Eliminar este bloqueo?');">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(blocked)}">
+      <td colspan="5" class="muted">No hay bloqueos cargados.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

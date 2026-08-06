@@ -20,6 +20,7 @@ public class StylistResponseDto {
     private String name;
     private String email;
     private String phone;
+    private String telegramChatId;
     @Builder.Default
     private List<ServiceResponseDto> services = new ArrayList<>();
     private StylistRoom stylistRoom;

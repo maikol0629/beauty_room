@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Servicios — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <h2>Servicios y precios</h2>
+    <a class="btn" th:href="@{/panel/services/new}">+ Nuevo servicio</a>
+  </div>
+  <table>
+    <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Descripción</th>
+      <th>Precio</th>
+      <th>Duración (min)</th>
+      <th>Estilista</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="s : ${services}">
+      <td th:text="${s.name}">Corte</td>
+      <td th:text="${s.description}">Descripción</td>
+      <td th:text="${#numbers.formatDecimal(s.price, 1, 2)}">0.00</td>
+      <td th:text="${s.duration}">30</td>
+      <td th:text="${s.id_stylist}">1</td>
+      <td style="white-space:nowrap;">
+        <a class="btn btn-outline btn-sm" th:href="@{/panel/services/{id}/edit(id=${s.idService})}">Editar</a>
+        <form style="display:inline" th:action="@{/panel/services/{id}/delete(id=${s.idService})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-danger btn-sm"
+                  onclick="return confirm('¿Eliminar este servicio?');">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(services)}">
+      <td colspan="6" class="muted">No hay servicios. Creá el primero.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

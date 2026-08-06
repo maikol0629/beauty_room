@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Estilistas — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Estilistas</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Email</th>
+      <th>Teléfono</th>
+      <th>Chat Telegram</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="st : ${stylists}">
+      <td th:text="${st.name}">Estilista</td>
+      <td th:text="${st.email}">email@x.com</td>
+      <td th:text="${st.phone}">5551234</td>
+      <td th:text="${st.telegramChatId}">123456</td>
+      <td><a class="btn btn-outline btn-sm" th:href="@{/panel/stylists/{id}/edit(id=${st.id})}">Editar</a></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(stylists)}">
+      <td colspan="5" class="muted">No hay estilistas.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

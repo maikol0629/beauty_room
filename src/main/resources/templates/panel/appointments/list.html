@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Citas — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Citas</h2>
+
+  <div class="form-card" style="max-width:100%;">
+    <form th:action="@{/panel/appointments}" method="get" style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <label for="stylistId">Estilista</label>
+        <select id="stylistId" name="stylistId">
+          <option value="">Todos</option>
+          <option th:each="st : ${stylists}" th:value="${st.id}" th:text="${st.name}"
+                  th:selected="${selectedStylist != null and selectedStylist == st.id}">Estilista</option>
+        </select>
+      </div>
+      <div>
+        <label for="status">Estado</label>
+        <select id="status" name="status">
+          <option value="">Todos</option>
+          <option th:each="st : ${statuses}" th:value="${st}" th:text="${st}"
+                  th:selected="${selectedStatus != null and selectedStatus == st}">PENDING</option>
+        </select>
+      </div>
+      <div>
+        <label for="from">Desde</label>
+        <input type="date" id="from" name="from" th:value="${from}">
+      </div>
+      <div>
+        <label for="to">Hasta</label>
+        <input type="date" id="to" name="to" th:value="${to}">
+      </div>
+      <button type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Cliente</th>
+      <th>Servicio</th>
+      <th>Estilista</th>
+      <th>Estado</th>
+      <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${appointments}">
+      <td th:text="${#temporals.format(a.startDate, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+      <td th:text="${a.client.name}">Cliente</td>
+      <td th:text="${a.service.name}">Servicio</td>
+      <td th:text="${a.stylist.name}">Estilista</td>
+      <td><span class="badge" th:classappend="${a.status != null ? 'badge-' + a.status : ''}"
+                th:text="${a.status != null ? a.status : 'PENDING'}">PENDING</span></td>
+      <td style="white-space:nowrap;">
+        <form style="display:inline" th:action="@{/panel/appointments/{id}/confirm(id=${a.id})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-outline btn-sm"
+                  th:if="${a.status != null and a.status.name() == 'PENDING'}">Confirmar</button>
+        </form>
+        <form style="display:inline" th:action="@{/panel/appointments/{id}/complete(id=${a.id})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-outline btn-sm"
+                  th:if="${a.status != null and (a.status.name() == 'PENDING' or a.status.name() == 'CONFIRMED')}">Completar</button>
+        </form>
+        <form style="display:inline" th:action="@{/panel/appointments/{id}/cancel(id=${a.id})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-danger btn-sm"
+                  th:if="${a.status == null or (a.status.name() != 'CANCELLED' and a.status.name() != 'COMPLETED')}"
+                  onclick="return confirm('¿Cancelar esta cita?');">Cancelar</button>
+        </form>
+      </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(appointments)}">
+      <td colspan="6" class="muted">No hay citas con esos filtros.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

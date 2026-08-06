@@ -91,6 +91,6 @@
 
 ---
 
-## ▶️ Próximo paso: Fase 6 (validación con usuarios reales)
+## ▶️ Próximo paso: Fase 6 (panel de administración y autonomía del estilista)
 
-- Reclutar 10-15 estilistas, onboarding manual, medir citas/semana/estilista, canal de feedback directo. Es más de negocio que de código.
+- Panel web del estilista (Thymeleaf): login, CRUD de servicios/horarios/bloqueos, citas/clientes y link público con QR. Detalle en [CHECKLIST_FASE_6.md](CHECKLIST_FASE_6.md).

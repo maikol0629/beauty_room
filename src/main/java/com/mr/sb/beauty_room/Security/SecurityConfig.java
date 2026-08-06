@@ -3,6 +3,7 @@ package com.mr.sb.beauty_room.Security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,25 +28,67 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
+    /**
+     * Cadena del panel de administración (Fase 6): form login con sesión para /panel/**.
+     * Solo roles STYLIST y ADMIN. CSRF habilitado (los forms de Thymeleaf incluyen el token).
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain panelSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            .securityMatcher("/panel/**", "/css/**", "/js/**", "/images/**", "/favicon.ico")
             .authorizeHttpRequests(auth -> auth
-            .requestMatchers(
-                "/api/auth/**",
-                "/api/stylist/public",
-                "/api/service/public",
-                "/api/appointment/availability",
-                "/api/appointment/slots",
-                "/api/telegram/webhook",
-                "/v3/api-docs/**",
-                "/swagger-ui/**",
-                "/swagger-ui.html"
-            ).permitAll()
-            .requestMatchers(
-                "/api/client/register"
-            ).permitAll()
+                .requestMatchers(
+                    "/panel/login",
+                    "/css/**",
+                    "/js/**",
+                    "/images/**",
+                    "/favicon.ico"
+                ).permitAll()
+                .requestMatchers("/panel/**").hasAnyRole("STYLIST", "ADMIN")
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
+            .formLogin(form -> form
+                .loginPage("/panel/login")
+                .defaultSuccessUrl("/panel", true)
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/panel/logout")
+                .logoutSuccessUrl("/panel/login?logout")
+                .permitAll()
+            )
+            .authenticationProvider(authenticationProvider());
+
+        return http.build();
+    }
+
+    /**
+     * Cadena de la API REST: stateless + JWT (comportamiento original).
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/api/stylist/public",
+                    "/api/service/public",
+                    "/api/appointment/availability",
+                    "/api/appointment/slots",
+                    "/api/telegram/webhook",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).permitAll()
+                .requestMatchers(
+                    "/api/client/register"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -73,4 +117,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-} 
+}

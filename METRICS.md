@@ -37,7 +37,7 @@
 
 ---
 
-### Fase 6: Validación con Usuarios Reales
+### Fase 7: Validación con Usuarios Reales
 
 | Métrica | Objetivo | Actual | ✅/❌ |
 |---|---|---|---|
@@ -246,9 +246,10 @@ FASE 0  █████████████████████  100% (S
 FASE 1  █████████████████████  100% (Semana 3) ✅
 FASE 2  █████████████████████  100% (Semana 4) ✅ (esqueleto bot: webhook+deep link)
 FASE 3  █████████████████████  100% (Semana 5) ✅ (FSM agendamiento)
-FASE 4-5░░░░░░░░░░░░░░░░░░░░░  0% (Semana 6-7)
-FASE 6  ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 8-10)
-FASE 7+ ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 11+)
+FASE 4-5█████████████████████  100% (Semana 6-7) ✅ (flujo estilista + recordatorios)
+FASE 6  █████████████████████  100% (Semana 8) ✅ (panel de administración)
+FASE 7  ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 9-11)
+FASE 8+ ░░░░░░░░░░░░░░░░░░░░░  0% (Semana 12+)
 
 Total  ██████████░░░░░░░░░░░  50% de fases completadas
 ```
@@ -294,7 +295,7 @@ Tareas pendientes
 | Telegram (7.11.0) | Usar `telegrambots-springboot-webhook-starter:7.11.0` (el clásico `telegrambots-spring-boot-starter` es de Boot 2.7); los beans del bot deben ser `@ConditionalOnProperty(telegram.bot.token)` para arrancar sin token; resolver el tenant por **deep link `?start=tenantKey`** (un solo bot multitenant) | Fase 2 |
 | FSM (Fase 3) | `@Service` choca con `entities.Service` → usar FQN en la anotación; `InlineKeyboardRow` (7.11.0) para `InlineKeyboardMarkup`; fuera de HTTP hay que `TenantInterceptor.setCurrentTenantId`/`clear`; persistir `tenantId` en `ConversationState` (los callbacks no repiten el deep link); clientes del bot con email sintético `tg_<chatId>@bot.local` | Fase 3 |
 | Bot design | (Se aprenderá en Fase 3) | Bot MVP |
-| Validación con usuarios | (Se aprenderá en Fase 6) | Pilotos |
+| Validación con usuarios | (Se aprenderá en Fase 7) | Pilotos |
 
 ---
 
@@ -310,8 +311,8 @@ Tareas pendientes
 ## 📅 Próximas revisiones
 
 - **5 de agosto 2026** → ✅ Fin de Fase 3, MVP de agendamiento working (COMPLETADA)
-- **2 de septiembre 2026** → Fin de Fase 4-5, loop completo (estilista + recordatorios)
-- **16 de septiembre 2026** → Fin de Fase 6, validación usuarios reales
+- **6 de agosto 2026** → ✅ Fin de Fase 4-5, loop completo (estilista + recordatorios) y Fase 6, panel de administración (COMPLETADAS)
+- **Septiembre 2026** → Fin de Fase 7, validación usuarios reales
 
 ---
 

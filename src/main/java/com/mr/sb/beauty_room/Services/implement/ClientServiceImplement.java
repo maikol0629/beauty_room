@@ -7,7 +7,7 @@ import com.mr.sb.beauty_room.Services.IClientService;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.ClientRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +15,9 @@ import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @Service
+@RequiredArgsConstructor
 public class ClientServiceImplement implements IClientService {
-    @Autowired
-    private ClientRepository clientRepository;
+    private final ClientRepository clientRepository;
 
     @Override
     public List<ClientResponseDto> findAll() {

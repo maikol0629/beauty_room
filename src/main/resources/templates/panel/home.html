@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Inicio — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Inicio</h2>
+  <div class="cards">
+    <div class="card">
+      <span class="card-num" th:text="${servicesCount}">0</span>
+      Servicios
+    </div>
+    <div class="card">
+      <span class="card-num" th:text="${stylistsCount}">0</span>
+      Estilistas
+    </div>
+    <div class="card">
+      <span class="card-num" th:text="${clientsCount}">0</span>
+      Clientes
+    </div>
+    <div class="card">
+      <span class="card-num" th:text="${todayAppointments.size()}">0</span>
+      Citas hoy
+    </div>
+  </div>
+
+  <h3>Citas de hoy</h3>
+  <table>
+    <thead>
+    <tr>
+      <th>Hora</th>
+      <th>Cliente</th>
+      <th>Servicio</th>
+      <th>Estilista</th>
+      <th>Estado</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${todayAppointments}">
+      <td th:text="${#temporals.format(a.startDate, 'HH:mm')}">10:00</td>
+      <td th:text="${a.client.name}">Cliente</td>
+      <td th:text="${a.service.name}">Servicio</td>
+      <td th:text="${a.stylist.name}">Estilista</td>
+      <td><span class="badge" th:classappend="${a.status != null ? 'badge-' + a.status : ''}"
+                th:text="${a.status != null ? a.status : 'PENDING'}">PENDING</span></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(todayAppointments)}">
+      <td colspan="5" class="muted">No hay citas para hoy.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

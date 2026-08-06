@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Nuevo horario — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <h2>Nuevo horario</h2>
+  <div class="form-card">
+    <form th:action="@{/panel/schedules}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+      <label for="stylistId">Estilista</label>
+      <select id="stylistId" name="stylistId" required>
+        <option value="">Seleccionar...</option>
+        <option th:each="st : ${stylists}" th:value="${st.id}" th:text="${st.name}">Estilista</option>
+      </select>
+
+      <label for="day">Día</label>
+      <select id="day" name="day" required>
+        <option th:each="d : ${days}" th:value="${d}" th:text="${d}">MONDAY</option>
+      </select>
+
+      <div class="form-row">
+        <div>
+          <label for="startTime">Inicio</label>
+          <input type="time" id="startTime" name="startTime" required>
+        </div>
+        <div>
+          <label for="endTime">Fin</label>
+          <input type="time" id="endTime" name="endTime" required>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; gap:12px;">
+        <button type="submit">Guardar</button>
+        <a class="btn btn-outline" th:href="@{/panel/schedules}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

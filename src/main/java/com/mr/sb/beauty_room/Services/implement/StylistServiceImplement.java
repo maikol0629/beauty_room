@@ -34,6 +34,7 @@ public class StylistServiceImplement implements IStylistService {
                         .id(stylist.getId())
                         .stylistRoom(stylist.getStylistRoom())
                         .name(stylist.getName_stylist())
+                        .telegramChatId(stylist.getTelegram_chat_id())
                         .build()
 
         ).toList();
@@ -53,6 +54,7 @@ public class StylistServiceImplement implements IStylistService {
                     .id(stylist.getId())
                     .stylistRoom(stylist.getStylistRoom())
                     .name(stylist.getName_stylist())
+                    .telegramChatId(stylist.getTelegram_chat_id())
                     .build();
 
 
@@ -71,6 +73,7 @@ public class StylistServiceImplement implements IStylistService {
                 .name_stylist(stylistSaveDto.getName())
                 .email(stylistSaveDto.getEmail())
                 .phone(stylistSaveDto.getPhone())
+                .telegram_chat_id(stylistSaveDto.getTelegramChatId())
                 .tenant(Tenant.builder().id(tenantId).build())
                 .build();
         stylistRepository.save(stylist);
@@ -105,6 +108,7 @@ public class StylistServiceImplement implements IStylistService {
             stylist.setName_stylist(stylistSaveDto.getName());
             stylist.setEmail(stylistSaveDto.getEmail());
             stylist.setPhone(stylistSaveDto.getPhone());
+            stylist.setTelegram_chat_id(stylistSaveDto.getTelegramChatId());
             stylistRepository.save(stylist);
             return true;
         }

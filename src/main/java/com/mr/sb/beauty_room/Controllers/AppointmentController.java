@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +24,10 @@ import java.util.Optional;
 @RestController
 @RequestMapping("api/appointment")
 @Tag(name = "Appointments", description = "Gestión de citas (CRUD, disponibilidad, estados)")
+@RequiredArgsConstructor
 public class AppointmentController {
 
-    @Autowired
-    private IAppointmentService appointmentService;
+    private final IAppointmentService appointmentService;
 
 
     @GetMapping("/findById/{id}")

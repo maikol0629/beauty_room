@@ -149,58 +149,68 @@
 
 ---
 
-## FASE 6 — Validación con usuarios reales (early adopters)
+## FASE 6 — Panel de administración y autonomía del estilista
+*Objetivo: dar al estilista control directo sobre servicios, precios, horarios y el canal público de agenda.*
+
+**ESTADO ACTUAL:**
+- ✅ Completada (6 de agosto de 2026)
+- ✅ Login del tenant/estilista por sesión (form login Spring Security, roles `STYLIST`/`ADMIN`)
+- ✅ CRUD visual de servicios y precios
+- ✅ CRUD visual de horarios y bloqueos recurrentes
+- ✅ Link público de agenda + código QR (zxing) para compartir en redes → deep link del bot `https://t.me/<username>?start=<tenantKey>`
+- ✅ Vista de citas (filtros, confirmar/completar/cancelar) y de clientes
+- ✅ Edición de estilista (incluye `telegram_chat_id`)
+- ✅ Integración con la lógica existente (mismos `IService`/repositorios; aislamiento por tenant)
+- ✅ Seguridad en 2 cadenas: panel por sesión + API stateless JWT intacta
+- ✅ 8 tests nuevos (QR + seguridad del panel) — suite total **76 tests, 0 fallos**
+
+**Acciones requeridas:**
+- [x] Login del tenant / estilista (credenciales JWT o sesión Angular) — sesión Spring Security
+- [x] CRUD visual de servicios y precios para el tenant
+- [x] CRUD visual de horarios, disponibilidad y bloqueos recurrentes
+- [x] Generación de link público de agenda y código QR para compartir en redes
+- [x] Vista de citas y clientes con estado de reservas
+- [x] Integración con la lógica existente: usar APIs y servicios ya implementados
+- [x] Documentar el flujo para que el estilista pueda publicar el nuevo canal de agendamiento
+
+**Entregable de la fase:** el estilista puede administrar su oferta y publicar su agenda sin intervención técnica. El producto deja de depender de soporte manual para cambiar servicios, precios o disponibilidad. ✅ (detalle en [CHECKLIST_FASE_6.md](CHECKLIST_FASE_6.md))
+
+---
+
+## FASE 7 — Validación con usuarios reales (early adopters)
 *Objetivo: dejar de suponer y empezar a saber. Esta fase es más de negocio que de código.*
 
 **ESTADO ACTUAL:**
-- 🟡 Próxima fase — desbloqueada (Fases 2-5 completas, 68 tests OK). A la espera de ejecución: más de negocio que de código.
-- ✅ MVP de código completo: bot con flujo completo de agendamiento, gestión de citas del estilista y recordatorios automáticos. Falta validarlo con usuarios reales.
+- ❌ No iniciada (depende de Fase 6)
+- ✅ MVP de código completo: bot con flujo completo de agendamiento, gestión de citas del estilista y recordatorios automáticos.
+- ✅ Este paso confirma si el panel admin y el canal público son realmente útiles.
 
 **Acciones requeridas:**
 - [ ] Reclutar 10-15 estilistas de tu ciudad (contacto directo, gratis a cambio de feedback)
-- [ ] Onboarding manual (vos mismo das de alta cada tenant, no lo automatices todavía)
+- [ ] Onboarding semi-manual con el panel ya disponible
 - [ ] Definir tu métrica clave: citas reales agendadas por semana por estilista activo
-- [ ] Canal directo de feedback (chat de WhatsApp/Telegram personal con cada estilista piloto)
+- [ ] Canal directo de feedback (chat de WhatsApp/Telegram personal con cada piloto)
 - [ ] Sesión de feedback semanal las primeras 2-3 semanas
-- [ ] Documentar cada fricción/queja
+- [ ] Documentar cada fricción/queja y cada cambio de configuración que haga el estilista
 
-**Entregable de la fase:** Sabés si estilistas reales dejan su libreta/agenda manual por tu bot, o no.
+**Entregable de la fase:** sabes si estilistas reales pueden autogestionar sus servicios y si el nuevo canal público funciona en la práctica.
 
 ---
 
-## FASE 7 — Iteración basada en feedback real
-*Objetivo: arreglar solo lo que bloquea el uso diario, nada más.*
+## FASE 8 — Iteración basada en feedback real
+*Objetivo: corregir solo lo que bloquea el uso diario, nada más.*
 
 **ESTADO ACTUAL:**
-- ❌ No iniciada (depende de Fase 6)
+- ❌ No iniciada (depende de Fase 7)
 
-**Tipicamente aparece:**
+**Típicamente aparece:**
 - [ ] Servicios combinados (ej: corte + color en la misma cita)
 - [ ] Manejo de "cliente frecuente" vs cliente nuevo
 - [ ] Ajustes finos de disponibilidad (franjas de almuerzo recurrentes)
-- [ ] Mejoras de redacción/UX conversacional
+- [ ] Mejoras en el flujo de link/QR y en la experiencia de publicación
+- [ ] Simplificación de la UI del panel admin
 
-**EVITAR en esta fase:** dashboards, reportes, IA conversacional, integraciones de pago.
-
----
-
-## FASE 8 — Panel de administración en Angular
-*Objetivo: ahora sí, frontend. Antes de esto no lo necesitabas para validar.*
-
-**ESTADO ACTUAL:**
-- ❌ No iniciada (no es prioritario para MVP)
-- ❌ No es bloqueante para validación
-
-**Acciones requeridas:**
-- [ ] Login del tenant (estilista/dueño de salón)
-- [ ] Vista de agenda (calendario semanal/mensual) — librerías como FullCalendar
-- [ ] CRUD visual de servicios y precios
-- [ ] CRUD visual de horarios/disponibilidad
-- [ ] Listado y ficha de clientes (historial de citas, notas)
-- [ ] Métricas básicas: citas del mes, tasa de cancelación/no-show, cliente más frecuente
-- [ ] Configuración del bot (mensaje de bienvenida personalizable)
-
-**Nota:** Hasta acá pudiste operar todo con Postman + Telegram. El panel Angular es para cuando el estilista ya confía en el producto.
+**EVITAR en esta fase:** agregar nuevas integraciones grandes antes de validar el panel y la adopción real.
 
 ---
 
@@ -299,10 +309,10 @@
 | 3 | Bot: flujo de agendamiento | ✅ **COMPLETADA** | Sí, es el core |
 | 4 | Bot: flujo del estilista | ✅ **COMPLETADA** | Sí, completa el loop |
 | 5 | Recordatorios automáticos | ✅ **COMPLETADA** | Sí, "wow factor" |
-| 6 | Validación con usuarios reales | ❌ No iniciada | **Aquí decides si sigues** |
-| 7 | Iteración por feedback real | ❌ No iniciada | Depende de Fase 6 |
-| 8-10 | Panel Angular, billing, self-service | ❌ No iniciada | No, es después de MVP |
-| 11-13 | Escalabilidad, WhatsApp, growth | ❌ No iniciada | No, es para tracción real |
+| 6 | Panel admin + autonomía del estilista | ✅ **COMPLETADA** | Sí, necesario antes de validar |
+| 7 | Validación con usuarios reales | ❌ No iniciada | Sí, depende de Fase 6 |
+| 8 | Iteración por feedback real | ❌ No iniciada | No, depende de adopción |
+| 9-13 | Billing, self-service y crecimiento | ❌ No iniciada | No, es después de adopción inicial |
 
 ---
 
@@ -345,6 +355,14 @@
    - [x] 68 tests OK
    - **Razón:** Es el "wow factor" que reduce ausencias (dolor #1). Detalle en [CHECKLIST_FASE_5.md](CHECKLIST_FASE_5.md).
 
-6. **SIGUIENTE — Fase 6: Validación con usuarios reales (early adopters)**: reclutar 10-15 estilistas, onboarding manual, medir citas/semana/estilista. Es más de negocio que de código.
+6. **AHORA — Fase 6: Panel de administración y autonomía del estilista (1 semana): ✅ COMPLETADA**
+   - [x] Login del tenant/estilista por sesión (roles `STYLIST`/`ADMIN`) + logout
+   - [x] CRUD visual de servicios/precios, horarios y bloqueos recurrentes (Thymeleaf)
+   - [x] Link público de agenda + QR (zxing) → deep link del bot
+   - [x] Vista de citas (filtros + confirmar/completar/cancelar) y clientes
+   - [x] 76 tests OK (8 nuevos: QR + seguridad del panel)
+   - **Razón:** El estilista administra su oferta y publica su canal sin soporte técnico. Detalle en [CHECKLIST_FASE_6.md](CHECKLIST_FASE_6.md).
+
+7. **SIGUIENTE — Fase 7: Validación con usuarios reales (early adopters)**: reclutar 10-15 estilistas, onboarding semi-manual con el panel, medir citas/semana/estilista. Es más de negocio que de código.
 
 **Timeline estimado para MVP completo:** 4-5 semanas si trabajas full-time en esto.

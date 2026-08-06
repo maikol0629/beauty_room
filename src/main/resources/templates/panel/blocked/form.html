@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Nuevo bloqueo — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <h2>Nuevo bloqueo</h2>
+  <div class="form-card">
+    <form th:action="@{/panel/blocked}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+      <label for="stylistId">Estilista</label>
+      <select id="stylistId" name="stylistId" required>
+        <option value="">Seleccionar...</option>
+        <option th:each="st : ${stylists}" th:value="${st.id}" th:text="${st.name}">Estilista</option>
+      </select>
+
+      <div class="form-row">
+        <div>
+          <label for="startDate">Inicio</label>
+          <input type="datetime-local" id="startDate" name="startDate" required>
+        </div>
+        <div>
+          <label for="endDate">Fin</label>
+          <input type="datetime-local" id="endDate" name="endDate" required>
+        </div>
+      </div>
+
+      <label for="reason">Motivo (opcional)</label>
+      <input type="text" id="reason" name="reason">
+
+      <div style="margin-top:20px; display:flex; gap:12px;">
+        <button type="submit">Guardar</button>
+        <a class="btn btn-outline" th:href="@{/panel/blocked}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

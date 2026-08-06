@@ -328,9 +328,11 @@ FASE 2-3 (2-3 sem): MVP Bot
   ↓
 FASE 4-5 (2 sem): Flujos completos
   ↓
-FASE 6 (2-3 sem): Validación usuarios reales
+FASE 6 (1 sem): Panel de administración
   ↓
-FASE 7+ (después si se valida)
+FASE 7 (2-3 sem): Validación usuarios reales
+  ↓
+FASE 8+ (después si se valida)
 
 ✅ Timeline claro: 12 semanas
 ✅ Estado actual documentado

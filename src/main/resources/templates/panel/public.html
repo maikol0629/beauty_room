@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Link público — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Link público de agenda</h2>
+  <p class="muted">
+    Compartí este enlace y su código QR en redes para que tus clientes agenden citas desde
+    el bot de Telegram del salón <span th:text="'(' + ${tenantName} + ')'">(Salón)</span>.
+  </p>
+
+  <div th:if="${publicUrl == null}" class="alert alert-danger">
+    El usuario del bot no está configurado (<code>telegram.bot.username</code>). Completalo en
+    <code>application.properties</code> y reiniciá la app para generar el link público.
+  </div>
+
+  <div th:if="${publicUrl != null}" class="qr-box">
+    <img th:src="@{/panel/qr.png}" alt="QR de agenda pública"/>
+    <p class="public-url" th:text="${publicUrl}">https://t.me/...</p>
+  </div>
+</main>
+</body>
+</html>

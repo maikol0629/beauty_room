@@ -1,0 +1,208 @@
+:root {
+  --primary: #7c4dff;
+  --primary-dark: #5b32c4;
+  --bg: #f5f3fa;
+  --card: #ffffff;
+  --text: #2b2340;
+  --muted: #7a7490;
+  --border: #e6e2f0;
+  --danger: #d9534f;
+  --success: #3c9d5b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar .brand {
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.nav-links a:hover { background: var(--bg); color: var(--primary); }
+
+.logout-form { margin: 0; }
+
+.container {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.alert-success { background: #e6f4ea; color: var(--success); }
+.alert-danger { background: #fdecea; color: var(--danger); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.card-num { display: block; font-size: 32px; font-weight: 700; color: var(--primary); }
+
+h2, h3 { color: var(--text); }
+
+.card, table, .form-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+th { background: var(--bg); color: var(--muted); font-weight: 600; }
+
+.btn, button {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.btn:hover, button:hover { background: var(--primary-dark); }
+
+.btn-sm { padding: 4px 10px; font-size: 13px; }
+.btn-danger { background: var(--danger); }
+.btn-danger:hover { background: #c0392b; }
+.btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.btn-outline:hover { background: var(--bg); }
+.btn-link { background: transparent; color: var(--muted); padding: 4px 8px; }
+.btn-link:hover { background: var(--bg); color: var(--text); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.badge-PENDING { background: #fff4d6; color: #b58a00; }
+.badge-CONFIRMED { background: #e3f1ff; color: #1a6fb5; }
+.badge-CANCELLED, .badge-REJECTED { background: #fdecea; color: var(--danger); }
+.badge-COMPLETED { background: #e6f4ea; color: var(--success); }
+.badge-NO_SHOW { background: #f0e6ff; color: var(--primary); }
+
+.form-card {
+  max-width: 560px;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.form-card label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 14px; }
+
+.form-card input,
+.form-card select,
+.form-card textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.form-row { display: flex; gap: 16px; }
+.form-row > div { flex: 1; }
+
+.error { color: var(--danger); font-size: 13px; }
+
+.login-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h1 { margin: 0 0 4px; color: var(--primary); }
+.muted { color: var(--muted); }
+
+.login-card label { display: block; margin: 14px 0 4px; font-weight: 600; font-size: 14px; }
+
+.login-card input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.login-card button { width: 100%; margin-top: 20px; padding: 12px; }
+
+.qr-box { text-align: center; padding: 24px; }
+.qr-box img { width: 240px; height: 240px; border: 1px solid var(--border); border-radius: 12px; }
+.public-url {
+  word-break: break-all;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-family: monospace;
+}

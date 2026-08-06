@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<nav th:fragment="navbar" class="navbar">
+  <a class="brand" th:href="@{/panel}">Beauty Room Panel</a>
+  <div class="nav-links">
+    <a th:href="@{/panel}">Inicio</a>
+    <a th:href="@{/panel/services}">Servicios</a>
+    <a th:href="@{/panel/schedules}">Horarios</a>
+    <a th:href="@{/panel/blocked}">Bloqueos</a>
+    <a th:href="@{/panel/appointments}">Citas</a>
+    <a th:href="@{/panel/clients}">Clientes</a>
+    <a th:href="@{/panel/stylists}">Estilistas</a>
+    <a th:href="@{/panel/public}">Link público</a>
+  </div>
+  <form class="logout-form" th:action="@{/panel/logout}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit" class="btn-link">Salir</button>
+  </form>
+</nav>
+
+<div th:fragment="flash" class="container">
+  <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+  <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+</div>
+
+</body>
+</html>
