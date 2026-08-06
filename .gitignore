@@ -28,3 +28,11 @@ target/
 
 ### VS Code ###
 .vscode/
+
+### Env / secretos ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+*.log
