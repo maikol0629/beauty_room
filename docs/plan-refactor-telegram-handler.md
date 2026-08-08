@@ -137,13 +137,13 @@
 
 ---
 
-## Fase 7 — Logs consistentes
+## Fase 7 (HECHA el 8/8/2026) — Logs consistentes
 
 **Problema crítico nº4.**
 
-- Unificar plantillas por tipo de evento: `Error agendando cita para chat_id={}:`, `Error cancelando cita {} para chat_id={}:` ya siguen un patrón; llevarlos a todos los puntos y **siempre** pasar la excepción completa como último arg (`log.error("...", e)`), nunca solo `e.getMessage()` sin `e`.
-- Preferir capturas específicas (`AppointmentConflictException`, `NumberFormatException`) y dejar `Exception` solo como red.
-- Los `log.warn` de `parseData` conservan su nivel.
+- Plantillas unificadas por evento en flujos y handler (`Error agendando cita para chat_id={}:`, `Error cancelando cita {} para chat_id={}:`, `Error gestionando cita {} para chat_id={}:`, `Error bloqueando horario para chat_id={}:`); todos los `log.error` pasan la excepción completa como último arg.
+- Capturas específicas preferidas: `DateTimeParseException` en `handleDateCallback`/`handleTimeCallback`/`handleBlockCallbacks` y `trySelectTimeByText` (con `Exception` como red que ahora loguea); `NumberFormatException` en ids de cita/servicio; `AppointmentConflictException` en el agendado.
+- `ConversationStateHelper`: `parseData` conserva nivel `warn` (ahora con `e`) y `toData` loguea `warn` en vez de fallar en silencio.
 
 **Verificación:** compile + revisión manual; no cambia tests.
 
@@ -182,7 +182,7 @@
 | Media | 4. Orquestadores por flujo | Medio | M-L (1-2 días) |
 | Media | 5. TelegramDateUtils | Bajo | ✅ HECHA (8/8/2026) |
 | Baja | 6. CallbackConstants | Bajo | ✅ HECHA (8/8/2026) |
-| Media | 7. Logs consistentes | Bajo | S |
+| Media | 7. Logs consistentes | Bajo | ✅ HECHA (8/8/2026) |
 | Baja | 8. Renombrar entities.Service→SalonService | ✅ HECHA (7/8/2026) | ver `docs/analisis-nombres-fase8.md` |
 | Baja | 9. JavaDoc y consolidación | Bajo | S |
 

@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -245,7 +246,11 @@ public class TelegramUpdateHandler {
     private void handleDateCallback(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String dateText) {
         try {
             bookingFlow.selectDate(msg, state, data, tenantId, LocalDate.parse(dateText));
+        } catch (DateTimeParseException e) {
+            channel.sendMessage(msg.chatId(), "Fecha inválida. Elegí otra:");
+            view.showDateOptions(msg, data, tenantId);
         } catch (Exception e) {
+            log.error("Error seleccionando fecha para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
             channel.sendMessage(msg.chatId(), "Fecha inválida. Elegí otra:");
             view.showDateOptions(msg, data, tenantId);
         }
@@ -254,7 +259,11 @@ public class TelegramUpdateHandler {
     private void handleTimeCallback(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String timeText) {
         try {
             bookingFlow.selectTime(msg, state, data, tenantId, TelegramDateUtils.parseTime(timeText));
+        } catch (DateTimeParseException e) {
+            channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
+            view.showTimeOptions(msg, data, tenantId);
         } catch (Exception e) {
+            log.error("Error seleccionando hora para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
             channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
             view.showTimeOptions(msg, data, tenantId);
         }
@@ -264,21 +273,33 @@ public class TelegramUpdateHandler {
         if (cb.startsWith(PREFIX_BLOCK_DATE)) {
             try {
                 stylistFlow.selectBlockDate(msg, state, data, tenantId, LocalDate.parse(cb.substring(PREFIX_BLOCK_DATE.length())));
+            } catch (DateTimeParseException e) {
+                channel.sendMessage(msg.chatId(), "Fecha inválida. Elegí otra:");
+                stylistFlow.startBlock(msg, state, tenantId);
             } catch (Exception e) {
+                log.error("Error seleccionando fecha de bloqueo para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
                 channel.sendMessage(msg.chatId(), "Fecha inválida. Elegí otra:");
                 stylistFlow.startBlock(msg, state, tenantId);
             }
         } else if (cb.startsWith(PREFIX_BLOCK_START)) {
             try {
                 stylistFlow.selectBlockStart(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_START.length())));
+            } catch (DateTimeParseException e) {
+                channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
+                view.showBlockStartOptions(msg, data, tenantId);
             } catch (Exception e) {
+                log.error("Error seleccionando hora de inicio de bloqueo para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockStartOptions(msg, data, tenantId);
             }
         } else if (cb.startsWith(PREFIX_BLOCK_END)) {
             try {
                 stylistFlow.selectBlockEnd(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_END.length())));
+            } catch (DateTimeParseException e) {
+                channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
+                view.showBlockEndOptions(msg, data, tenantId);
             } catch (Exception e) {
+                log.error("Error seleccionando hora de fin de bloqueo para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockEndOptions(msg, data, tenantId);
             }

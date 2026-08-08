@@ -37,7 +37,7 @@ public class ConversationStateHelper {
             return objectMapper.readValue(data, new TypeReference<HashMap<String, String>>() {
             });
         } catch (Exception e) {
-            log.warn("No se pudo parsear data de conversación: {}", data);
+            log.warn("No se pudo parsear data de conversación: {}", data, e);
             return new HashMap<>();
         }
     }
@@ -49,6 +49,7 @@ public class ConversationStateHelper {
         try {
             return objectMapper.writeValueAsString(data);
         } catch (Exception e) {
+            log.warn("No se pudo serializar data de conversación: {}", data, e);
             return null;
         }
     }

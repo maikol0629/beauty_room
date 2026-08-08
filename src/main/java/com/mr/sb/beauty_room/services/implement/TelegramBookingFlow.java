@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.HashMap;
 import java.util.List;
@@ -99,7 +100,7 @@ public class TelegramBookingFlow {
         LocalTime time;
         try {
             time = TelegramDateUtils.parseTime(text);
-        } catch (Exception e) {
+        } catch (DateTimeParseException e) {
             channel.sendMessage(msg.chatId(), "No entendí la hora. Usá el formato HH:mm (ej: 10:30) o elegí una de las horas de abajo.");
             view.showTimeOptions(msg, data, tenantId);
             return;
