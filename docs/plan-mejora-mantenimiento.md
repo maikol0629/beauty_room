@@ -60,7 +60,7 @@ Eliminar configuración sensible del código y dejar el proyecto listo para ento
 
 ---
 
-## Fase 2 — Persistencia y base de datos (Semanas 2-3)
+## Fase 2 — Persistencia y base de datos (Semanas 2-3) ✅ COMPLETADA
 
 ### Objetivo
 
@@ -84,6 +84,62 @@ Hacer que la base de datos sea tratable, reproducible y segura para evolución c
 
 - Migraciones versionadas y reproducibles.
 - Procedimiento de backup/restauración.
+
+---
+
+## Fase 2 — Detalle de la implementación (completada el 7 de agosto de 2026)
+
+Flyway 10.20.0 ya estaba como dependencia (`flyway-core` + `flyway-mysql` en `pom.xml`) pero desactivado
+en runtime. Se activó como **fuente de verdad del esquema** en todos los perfiles:
+
+### Cambios de configuración
+
+- **`application.properties` (base):** `ddl-auto=${DDL_AUTO:validate}` (Hibernate solo valida), Flyway
+  `enabled=${FLYWAY_ENABLED:true}` con `baseline-on-migrate=true` para adoptar DBs existentes sin romperlas,
+  `import_files=${IMPORT_SQL_FILE:}` (vacío por defecto) y `sql.init.mode=never`. Se eliminó
+  `spring.jpa.defer-datasource-initialization`.
+- **`dev`:** Flyway activo + `validate`. El seed ya NO corre por `import.sql` (vive en `V2__seed_data.sql`).
+- **`test`:** se mantiene `create-drop` + `import.sql` para aislamiento por contexto (78 tests OK), Flyway
+  desactivado. **Además se añadió `src/test/resources/application.properties` que hace shadow al de la app**
+  y bloquea la importación del `.env` del proyecto: antes los tests heredaban el `.env` (perfil `dev`,
+  DB `beauty_room`, `FLYWAY_ENABLED=false`), así que corrían contra la DB real del desarrollador y la
+  dejaban vacía. Ahora los tests usan SIEMPRE el perfil `test` y la DB `beauty_room_test`.
+- **`staging`/`prod`:** Flyway OBLIGATORIO (`enabled=${FLYWAY_ENABLED:true}`), `ddl-auto=validate`,
+  sin `import.sql`. Exigen `DB_URL`/`DB_USERNAME`/`DB_PASSWORD` desde env (sin fallback, como ya era).
+- **Dialecto:** cambiado el fallback de `org.hibernate.dialect.MySQLDialect` a
+  **`org.hibernate.dialect.MariaDBDialect`**. Encontrado durante la validación: `MySQLDialect` falla el
+  `ddl-auto=validate` contra MariaDB 12.1 ("missing table") porque su extractor de metadata no encuentra
+  las tablas; `MariaDBDialect` sí. El `.env` local sigue forzando `MySQLDialect` + `create-drop`, así que
+  la app en ejecución del desarrollador NO se ve afectada hasta que adopte la config recomendada.
+- **`.env.example`:** actualizado a la config recomendada (`MariaDBDialect`, `DDL_AUTO=validate`,
+  `FLYWAY_ENABLED=true`, sin `import.sql`).
+
+### Migraciones (`src/main/resources/db/migration/`)
+
+- **`V1__init_schema.sql`:** esquema EXACTO que genera Hibernate 6.4 (capturado con
+  `schema-generation.scripts.action=create` y verificado): 13 tablas (`tenant`, `users`, `stylist`,
+  `client`, `service`, `appointment`, `blocked_slot`, `conversation_state`, `notification`, `payment`,
+  `review`, `stylist_room`, `stylist_schedule`), FKs, enums y `ENGINE=InnoDB`. Es la referencia contra la
+  que `ddl-auto=validate` compara.
+- **`V2__seed_data.sql`:** seed del MVP (antes `import.sql`) pero IDEMPOTENTE (`INSERT IGNORE`), para que
+  se pueda ejecutar tanto sobre DB recién migrada como sobre DB ya sembrada (caso baseline).
+
+### Verificación (Fase 4 de validación estricta)
+
+1. **DB limpia** (`beauty_room_test` vacía): Flyway aplica V1+V2 y la app arranca con `validate`. ✅
+2. **Baseline de DB existente** (esquema MVP creado con `create-drop` + `import.sql`, SIN historial
+   Flyway): Flyway hace baseline en v1 (sin tocar datos: tenants=3, users=6 preservados) y aplica V2 de
+   forma idempotente (los duplicados son warnings 1062, no errores). App arranca con `validate`. ✅
+3. **Tests:** `./mvnw test` → 78 OK, contra `beauty_room_test` (la DB `beauty_room` del dev NO se toca). ✅
+
+### Gotchas documentados
+
+- Los tests de Services (Mockito) no usan BD; los `@SpringBootTest`/`@DataJpaTest` usan MariaDB real
+  (`@AutoConfigureTestDatabase(replace = NONE)`) contra `beauty_room_test`.
+- Si `staging`/`prod` arrancan sin `DB_URL`/`DB_USERNAME`/`DB_PASSWORD`, fallan a propósito.
+- El `.env` local del desarrollador (gitignored) aún fuerza `create-drop` + `FLYWAY_ENABLED=false` +
+  `MySQLDialect`: es su elección explícita y la app sigue funcionando. Para adoptar Flyway en local basta
+  seguir `.env.example`.
 
 ---
 
@@ -200,7 +256,7 @@ Crear una base sostenible para que el sistema siga creciendo sin perder control.
 
 ### Prioridad 1: inmediata
 - Secretos y configuración. ✅ (Fase 1 completada)
-- Migraciones de base de datos. ⏳ Flyway sigue desactivado en todos los perfiles (Fase 2, pendiente)
+- Migraciones de base de datos. ✅ Flyway activo con `V1__init_schema.sql` + `V2__seed_data.sql` (Fase 2 completada; `create-drop` solo en test)
 - Manejo de excepciones. ✅ (Fase 3)
 
 ### Prioridad 2: corta
