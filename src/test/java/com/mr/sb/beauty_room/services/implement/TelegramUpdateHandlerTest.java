@@ -75,8 +75,15 @@ class TelegramUpdateHandlerTest {
     void setUp() {
         ITelegramViewService view = new TelegramViewServiceImplement(
                 channel, accountService, appointmentService, stylistScheduleRepository);
-        handler = new TelegramUpdateHandler(channel, conversationStateService, appointmentService,
-                blockedSlotService, accountService, view, serviceRepository, objectMapper);
+        ConversationStateHelper stateHelper = new ConversationStateHelper(conversationStateService, objectMapper);
+        TelegramBookingFlow bookingFlow = new TelegramBookingFlow(
+                channel, view, appointmentService, accountService, serviceRepository, stateHelper);
+        TelegramStylistFlow stylistFlow = new TelegramStylistFlow(
+                channel, view, appointmentService, blockedSlotService, accountService, stateHelper);
+        TelegramAccountFlow accountFlow = new TelegramAccountFlow(
+                channel, view, appointmentService, accountService, stateHelper);
+        handler = new TelegramUpdateHandler(channel, conversationStateService, accountService, view,
+                stateHelper, bookingFlow, stylistFlow, accountFlow);
     }
 
     @AfterEach

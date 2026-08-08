@@ -98,7 +98,7 @@
 
 ---
 
-## Fase 4 — Orquestadores por dominio (`TelegramFlowService`)
+## Fase 4 (HECHA el 8/8/2026) — Orquestadores por dominio (`TelegramFlowService`)
 
 **Problema crítico nº1 / nº3.** Dividir el handler por dominio para reducir métodos largos y el número de ramas.
 
