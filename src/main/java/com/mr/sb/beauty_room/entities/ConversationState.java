@@ -20,19 +20,18 @@ public class ConversationState {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "chat_id", nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 100)
     private String chatId;
 
-    @Column(name = "tenant_id")
     private Long tenantId;
 
-    @Column(name = "current_step", length = 100)
+    @Column(length = 100)
     private String currentStep;
 
     @Column(columnDefinition = "TEXT")
     private String data;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist

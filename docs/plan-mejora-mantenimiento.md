@@ -149,17 +149,17 @@ en runtime. Se activó como **fuente de verdad del esquema** en todos los perfil
 
 1. **Unificar DTOs y contratos de API** ✅
    - Estándar definido: **camelCase en todos los campos de DTOs** (request y response).
-   - Renombrados: `id_client`→`clientId`, `id_stylist`→`stylistId`, `id_service`→`serviceId`, `id_stylist_room`→`stylistRoomId`, `idService`→`id`, `name_client`→`nameClient`, `name_stylist`→`nameStylist`, `telegram_chat_id`→`telegramChatId` (en DTOs: `AppointmentSaveDto`, `ClientSaveDto`, `ServiceSaveDto`, `ServiceResponseDto`, `StylistSaveDto`, `RegisterRequest`).
+   - Renombrados: `id_client`→`clientId`, `id_stylist`→`stylistId`, `id_service`→`serviceId`, `id_stylist_room`→`stylistRoomId`, `idService`→`id`, `name_client`→`nameClient`, `name_stylist`→`nameStylist`, `telegram_chat_id`→`telegramChatId` (en DTOs: `AppointmentSaveDto`, `ClientSaveDto`, `SalonServiceSaveDto` [antes `ServiceSaveDto`], `SalonServiceResponseDto` [antes `ServiceResponseDto`], `StylistSaveDto`, `RegisterRequest`).
    - Contrato actualizado en servicios, controllers (incl. panel Thymeleaf y sus templates `form.html`/`list.html`), bot Telegram (`TelegramUpdateHandler`) y la collection Postman `beauty_room_MVP.postman_collection.json`.
    - **Breaking change:** el JSON de la API ya NO acepta snake_case en los campos renombrados. Sin usuarios reales aún (Fase 7 pendiente), es aceptable.
-   - NOTA: las **entidades JPA** conservan snake_case (`name_client`, `telegram_chat_id`, `name_service`); el snake_case solo persiste a nivel de BD/entidad, no en el contrato JSON.
+   - NOTA: tras la **Fase 8 de normalización de nombres** (7/8/2026) las **entidades JPA también son camelCase** (`nameClient`, `telegramChatId`, `nameService`); el snake_case solo persiste en las **columnas de BD** vía `SpringPhysicalNamingStrategy` (ver `docs/analisis-nombres-fase8.md`).
 
 2. **Constructor injection** ✅
    - Eliminados los 5 `@Autowired` de campo/constructor redundantes. Ahora: `ConversationStateServiceImplement`, `StylistServiceImplement` usan `@RequiredArgsConstructor`; `TelegramBotService` y `TelegramChannel` inyectan el `TelegramClient` opcional (bean `@ConditionalOnProperty`) vía `ObjectProvider<TelegramClient>.getIfAvailable()`; `AppointmentServiceImplement` mantiene constructor explícito.
    - No queda inyección por campo en `src/main`.
 
 3. **Centralizar manejo de excepciones** ✅
-   - Ya existía: `Controllers/GlobalExceptionHandler` (`@RestControllerAdvice`) + `ApiErrorResponse` (errores de validación, tenant, acceso, conflicto 409, integridad, no encontrado, runtime).
+   - Ya existía: `controllers/GlobalExceptionHandler` (`@RestControllerAdvice`) + `ApiErrorResponse` (errores de validación, tenant, acceso, conflicto 409, integridad, no encontrado, runtime).
    - Arreglado el test unitario `GlobalExceptionHandlerTest` (usaba `rejectValue` sobre un target `Object` sin la propiedad, lo que lanzaba `NotReadableProperty`; ahora usa `FieldError` explícito).
 
 4. **Revisar nombres y responsabilidades** ✅

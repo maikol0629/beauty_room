@@ -24,7 +24,7 @@ public class Tenant {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @Column(name = "tenant_key", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String tenantKey;
 
     @Enumerated(EnumType.STRING)
@@ -35,10 +35,9 @@ public class Tenant {
     @Builder.Default
     private TenantStatus status = TenantStatus.ACTIVE;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "trial_ends_at")
     private LocalDateTime trialEndsAt;
 
     @PrePersist

@@ -16,13 +16,12 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class Stylist extends User {
     @Column(nullable = false)
-    private String name_stylist;
+    private String nameStylist;
 
     @Column(nullable = false)
     private String phone;
 
-    @Column(name = "telegram_chat_id")
-    private String telegram_chat_id;
+    private String telegramChatId;
 
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -32,7 +31,7 @@ public class Stylist extends User {
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Service> services = new ArrayList<>();
+    private List<SalonService> services = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "id_stylist_room", nullable = true)

@@ -3,7 +3,7 @@ package com.mr.sb.beauty_room.repository;
 import com.mr.sb.beauty_room.entities.Appointment;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.Client;
-import com.mr.sb.beauty_room.entities.Service;
+import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class AppointmentRepositoryTests {
     @Autowired
     private StylistRepository stylistRepository;
     @Autowired
-    private ServiceRepository serviceRepository;
+    private SalonServiceRepository serviceRepository;
     @Autowired
     private TenantRepository tenantRepository;
 
@@ -64,8 +64,8 @@ class AppointmentRepositoryTests {
         Client noChat = Client.builder()
                 .email("tg_nochat@bot.local")
                 .password("x")
-                .name_client("No Chat")
-                .telegram_chat_id(null)
+                .nameClient("No Chat")
+                .telegramChatId(null)
                 .tenant(tenant)
                 .build();
         noChat = clientRepository.save(noChat);
@@ -106,7 +106,7 @@ class AppointmentRepositoryTests {
 
     private Appointment saveAppointmentWithClient(Client client, LocalDateTime start, AppointmentStatus status) {
         Stylist stylist = stylistRepository.findByIdAndTenantId(1L, 1L).orElseThrow();
-        Service service = serviceRepository.findByIdAndTenantId(1L, 1L).orElseThrow();
+        SalonService service = serviceRepository.findByIdAndTenantId(1L, 1L).orElseThrow();
         Tenant tenant = tenantRepository.findById(1L).orElseThrow();
         Appointment appointment = Appointment.builder()
                 .startDate(start)

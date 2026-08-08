@@ -1,7 +1,7 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
-**Actualizado:** 6 de agosto de 2026  
-**Próxima revisión:** Después de Fase 6
+**Actualizado:** 7 de agosto de 2026  
+**Próxima revisión:** Después de Fase 7
 
 ---
 
@@ -20,6 +20,7 @@
 ✅ Bot Telegram: flujo del estilista — agenda, bloquear, completar/no-show/cancelar (Fase 4 completada)
 ✅ Recordatorios automáticos: 24h/2h + resumen diario + deduplicación (Fase 5 completada)
 ✅ Panel de administración Thymeleaf: login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR (Fase 6 completada)
+✅ Fase 8 (plan de mantenibilidad): normalización de nombres — SalonService, campos camelCase, typos corregidos, paquetes en minúsculas
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 

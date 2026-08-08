@@ -16,11 +16,10 @@ import java.util.List;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class Client extends User {
-    private String name_client;
+    private String nameClient;
     private String phone;
 
-    @Column(name = "telegram_chat_id")
-    private String telegram_chat_id;
+    private String telegramChatId;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

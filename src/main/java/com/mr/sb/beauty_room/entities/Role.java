@@ -4,4 +4,4 @@ public enum Role {
     STYLIST,
     CLIENT,
     ADMIN
-} 
+}

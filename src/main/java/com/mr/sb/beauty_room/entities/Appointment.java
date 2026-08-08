@@ -41,7 +41,7 @@ public class Appointment {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_service", nullable = false)
     @JsonBackReference
-    private Service service;
+    private SalonService service;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)

@@ -14,7 +14,7 @@ public class StylistRoom {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     @Column(nullable = false)
-    private String name_room;
+    private String nameRoom;
     @Column(nullable = false)
     private String address;
 

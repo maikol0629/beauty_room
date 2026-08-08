@@ -19,9 +19,9 @@ public interface StylistRepository extends JpaRepository<Stylist, Long> {
 
     Optional<Stylist> findByIdAndTenantId(Long id, Long tenantId);
 
-    @Query("SELECT s FROM Stylist s WHERE s.telegram_chat_id = :telegramChatId")
+    @Query("SELECT s FROM Stylist s WHERE s.telegramChatId = :telegramChatId")
     Optional<Stylist> findByTelegramChatId(@Param("telegramChatId") String telegramChatId);
 
-    @Query("SELECT s FROM Stylist s WHERE s.telegram_chat_id = :telegramChatId AND s.tenant.id = :tenantId")
+    @Query("SELECT s FROM Stylist s WHERE s.telegramChatId = :telegramChatId AND s.tenant.id = :tenantId")
     Optional<Stylist> findByTelegramChatIdAndTenantId(@Param("telegramChatId") String telegramChatId, @Param("tenantId") Long tenantId);
 }
