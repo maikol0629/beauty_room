@@ -44,6 +44,11 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_TIME;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_INITIAL;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 
+/**
+ * Punto de entrada de las actualizaciones de Telegram. Actúa como dispatcher:
+ * parsea el update, resuelve el tenant y delega texto/callbacks a los flujos por
+ * dominio (TelegramBookingFlow, TelegramStylistFlow, TelegramAccountFlow).
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramUpdateHandler {

@@ -33,6 +33,9 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_TIME;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CONFIRM;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 
+/**
+ * Flujo de agendamiento del bot: selección de servicio, fecha, hora y confirmación.
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramBookingFlow {

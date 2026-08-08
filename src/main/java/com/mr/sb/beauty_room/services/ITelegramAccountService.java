@@ -6,6 +6,9 @@ import com.mr.sb.beauty_room.entities.Stylist;
 
 import java.util.Optional;
 
+/**
+ * Resolución de tenant y cuentas (clientes/estilistas) para el bot de Telegram.
+ */
 public interface ITelegramAccountService {
 
     Long resolveTenant(TelegramMessage msg);

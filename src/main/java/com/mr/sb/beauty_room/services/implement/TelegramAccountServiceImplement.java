@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Implementación de ITelegramAccountService: resuelve tenant por deep link y
+ * crea/recupera clientes y estilistas por telegramChatId.
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramAccountServiceImplement implements ITelegramAccountService {

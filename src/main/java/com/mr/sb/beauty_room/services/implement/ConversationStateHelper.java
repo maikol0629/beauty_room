@@ -13,6 +13,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Helper de la máquina de estados del bot: persiste el paso actual y los datos
+ * de la conversación como JSON en ConversationState.
+ */
 @Service
 @RequiredArgsConstructor
 public class ConversationStateHelper {

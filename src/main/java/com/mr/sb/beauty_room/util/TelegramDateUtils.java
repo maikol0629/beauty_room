@@ -7,6 +7,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Locale;
 
+/**
+ * Utilidades de fecha/hora para el bot de Telegram: formatos fijos y locale es.
+ */
 public final class TelegramDateUtils {
 
     public static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");

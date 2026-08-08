@@ -164,7 +164,7 @@ en runtime. Se activó como **fuente de verdad del esquema** en todos los perfil
 
 4. **Revisar nombres y responsabilidades** ✅
    - Extraído el cálculo de slots de `AppointmentServiceImplement` (era el servicio más sobrecargado, 463 líneas) a un nuevo `IAvailabilityService`/`AvailabilityServiceImplement` (horarios disponibles por estilista/servicio/fecha, con solape de citas y bloqueos). `IAppointmentService.getAvailableSlots` queda como delegado, sin cambios en controllers ni en el bot.
-   - Pendiente futuro (fuera de alcance de esta fase): `TelegramUpdateHandler` (FSM, ~1.080 líneas) sigue siendo el más grande; dividirlo requiere re-diseñar el FSM y es recomendable tras Fase 7.
+   - `TelegramUpdateHandler` (FSM, ~1.080 líneas) refactorizado a un **dispatcher de ~300 líneas efectivas** con colaboradores por dominio (`TelegramBookingFlow`, `TelegramStylistFlow`, `TelegramAccountFlow`, `ITelegramViewService`, `ITelegramAccountService`, `ConversationStateHelper`, `util/TelegramDateUtils`) — ver `docs/plan-refactor-telegram-handler.md` (Fases 1-7, 9 HECHAS; 90 tests OK).
 
 ### Verificación
 - `./mvnw test`: **78 tests OK, 0 fallos** (incluye E2E de doble-booking 409 vía `clientId`/`stylistId`/`serviceId` y los tests del panel con `stylistId`).

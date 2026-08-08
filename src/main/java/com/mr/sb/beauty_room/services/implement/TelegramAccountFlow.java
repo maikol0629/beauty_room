@@ -22,6 +22,10 @@ import java.util.Optional;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CANCEL_SELECT;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 
+/**
+ * Flujo de cuenta del cliente en el bot: menú, mis citas, cancelación y
+ * confirmación/cancelación desde recordatorios.
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramAccountFlow {

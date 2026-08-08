@@ -21,6 +21,7 @@
 ✅ Recordatorios automáticos: 24h/2h + resumen diario + deduplicación (Fase 5 completada)
 ✅ Panel de administración Thymeleaf: login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR (Fase 6 completada)
 ✅ Fase 8 (plan de mantenibilidad): normalización de nombres — SalonService, campos camelCase, typos corregidos, paquetes en minúsculas
+✅ Refactor de TelegramUpdateHandler: de 1.086 líneas monolíticas a dispatcher + flujos por dominio (Fases 1-7, 9 del plan de refactor; ver docs/plan-refactor-telegram-handler.md)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -392,7 +393,8 @@ Antes de empezar Fase 0 (completado):
 2. ✅ Fase 4 COMPLETADA: FSM del estilista (agenda del día, bloquear horarios, completar/no-show, cancelar)
 3. ✅ Fase 5 COMPLETADA: recordatorios automáticos (@Scheduled) — 24h y 2h antes + resumen diario al estilista
 4. ✅ Fase 6 COMPLETADA: panel de administración Thymeleaf (login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR)
-5. Fase 7: validación con usuarios reales (early adopters)
+5. ✅ Refactor de TelegramUpdateHandler COMPLETADO (Fases 1-7, 9): dispatcher + flujos por dominio (ver docs/plan-refactor-telegram-handler.md)
+6. Fase 7: validación con usuarios reales (early adopters)
 ```
 
 ---

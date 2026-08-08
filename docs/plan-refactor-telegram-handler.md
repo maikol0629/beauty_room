@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-`services/implement/TelegramUpdateHandler.java` (1.086 líneas) es funcional y cubre todos los flujos del bot, pero mezcla parsing, negocio, UI y gestión de tenant. Este plan lo divide en componentes pequeños mediante **refactors incrementales**, cada uno compilable y con los tests verdes, para reducir riesgo y mejorar mantenibilidad.
+`services/implement/TelegramUpdateHandler.java` (1.086 líneas) era funcional y cubría todos los flujos del bot, pero mezclaba parsing, negocio, UI y gestión de tenant. Este plan lo dividió en componentes pequeños mediante **refactors incrementales** (Fases 1-9), cada uno compilable y con los tests verdes, para reducir riesgo y mejorar mantenibilidad. **TODAS las fases están completadas** (8/8/2026); el handler quedó como dispatcher de ~300 líneas efectivas con 90 tests OK.
 
 ## Estado actual (diagnóstico)
 
@@ -162,13 +162,13 @@
 
 ---
 
-## Fase 9 — JavaDoc y consolidación final
+## Fase 9 (HECHA el 8/8/2026) — JavaDoc y consolidación final
 
 **Mejora opcional.**
 
-- Agregar JavaDoc breve en `TelegramUpdateHandler` (responsabilidad de dispatcher) y en cada colaborador nuevo.
-- Verificar que ninguna clase supere ~300 líneas efectivas y que el handler solo despache.
-- Actualizar `docs/plan-mejora-mantenimiento.md`, `DECISION_LOG.md`, `PROGRESS.md` y la sección de AGENTS.md que describe el bot.
+- JavaDoc breve agregado en `TelegramUpdateHandler` (responsabilidad de dispatcher) y en cada colaborador nuevo: `TelegramBookingFlow`, `TelegramStylistFlow`, `TelegramAccountFlow`, `TelegramViewServiceImplement`/`ITelegramViewService`, `TelegramAccountServiceImplement`/`ITelegramAccountService`, `ConversationStateHelper` y `util/TelegramDateUtils`.
+- Tamaños verificados: handler ~305 líneas no vacías (dispatcher); el resto por debajo de 300 (BookingFlow 182, StylistFlow 196, AccountFlow 129, ViewService 282).
+- Documentación consolidada: `docs/plan-mejora-mantenimiento.md`, `DECISION_LOG.md`, `PROGRESS.md` y la sección del bot en AGENTS.md actualizados.
 
 ---
 
@@ -184,6 +184,6 @@
 | Baja | 6. CallbackConstants | Bajo | ✅ HECHA (8/8/2026) |
 | Media | 7. Logs consistentes | Bajo | ✅ HECHA (8/8/2026) |
 | Baja | 8. Renombrar entities.Service→SalonService | ✅ HECHA (7/8/2026) | ver `docs/analisis-nombres-fase8.md` |
-| Baja | 9. JavaDoc y consolidación | Bajo | S |
+| Baja | 9. JavaDoc y consolidación | Bajo | ✅ HECHA (8/8/2026) |
 
 **Regla de oro:** hacerlas en orden 1 → 9; cada una deja el código compilando y 68+ tests verdes. La Fase 8 es independiente y puede diferirse.

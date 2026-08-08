@@ -9,6 +9,9 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Presentación del bot de Telegram: construye teclados y mensajes al usuario.
+ */
 public interface ITelegramViewService {
 
     void showMenu(TelegramMessage msg, Long tenantId);

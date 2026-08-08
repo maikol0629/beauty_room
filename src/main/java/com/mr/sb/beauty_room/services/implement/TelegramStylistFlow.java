@@ -42,6 +42,10 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_BLOCK_START;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_STYLIST_APPT;
 
+/**
+ * Flujo del estilista en el bot: agenda (día/semana), bloqueo de horarios y
+ * gestión de citas (completar / no-show / cancelar).
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramStylistFlow {

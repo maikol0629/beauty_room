@@ -37,6 +37,10 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_DATE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_SERVICE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_TIME;
 
+/**
+ * Capa de presentación del bot: construye los teclados y textos que se envían
+ * por IMessagingChannel, sin lógica de negocio.
+ */
 @Service
 @RequiredArgsConstructor
 public class TelegramViewServiceImplement implements ITelegramViewService {
