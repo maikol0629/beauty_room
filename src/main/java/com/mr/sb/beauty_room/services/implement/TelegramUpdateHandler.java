@@ -8,7 +8,7 @@ import com.mr.sb.beauty_room.dto.blockedslot.BlockedSlotRequestDto;
 import com.mr.sb.beauty_room.dto.telegram.Button;
 import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
 import com.mr.sb.beauty_room.exceptions.AppointmentConflictException;
-import com.mr.sb.beauty_room.security.TenantInterceptor;
+import com.mr.sb.beauty_room.security.TenantScope;
 import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IBlockedSlotService;
 import com.mr.sb.beauty_room.services.IConversationStateService;
@@ -515,21 +515,22 @@ public class TelegramUpdateHandler {
                 .serviceId(Long.parseLong(serviceId))
                 .build();
 
-        TenantInterceptor.setCurrentTenantId(tenantId);
         try {
-            boolean ok = appointmentService.save(dto);
-            if (ok) {
-                channel.sendMessage(msg.chatId(),
-                        "✅ ¡Listo! Tu cita quedó agendada:\n\n"
-                                + "• Fecha: " + LocalDate.parse(dateStr).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "\n"
-                                + "• Hora: " + timeStr + "\n\n"
-                                + "Te esperamos.");
-                updateState(state, STEP_MENU, null);
-            } else {
-                channel.sendMessage(msg.chatId(), "No se pudo agendar la cita. Elegí otra hora:");
-                showTimeOptions(msg, data, tenantId);
-                updateState(state, STEP_CHOOSE_TIME, data);
-            }
+            TenantScope.runWithTenant(tenantId, () -> {
+                boolean ok = appointmentService.save(dto);
+                if (ok) {
+                    channel.sendMessage(msg.chatId(),
+                            "✅ ¡Listo! Tu cita quedó agendada:\n\n"
+                                    + "• Fecha: " + LocalDate.parse(dateStr).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "\n"
+                                    + "• Hora: " + timeStr + "\n\n"
+                                    + "Te esperamos.");
+                    updateState(state, STEP_MENU, null);
+                } else {
+                    channel.sendMessage(msg.chatId(), "No se pudo agendar la cita. Elegí otra hora:");
+                    showTimeOptions(msg, data, tenantId);
+                    updateState(state, STEP_CHOOSE_TIME, data);
+                }
+            });
         } catch (AppointmentConflictException e) {
             log.info("Conflicto de agenda para chat_id={}: {}", msg.chatId(), e.getMessage());
             channel.sendMessage(msg.chatId(), "⚠️ Ese horario ya no está disponible. Elegí otra hora:");
@@ -539,8 +540,6 @@ public class TelegramUpdateHandler {
             log.error("Error agendando cita para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
             channel.sendMessage(msg.chatId(), "Ocurrió un error al agendar. Intentá de nuevo.");
             updateState(state, STEP_MENU, null);
-        } finally {
-            TenantInterceptor.clear();
         }
     }
 
@@ -554,13 +553,8 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        List<AppointmentResponseDto> appointments;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            appointments = appointmentService.findAppointmentsByClientID(clientOpt.get().getId());
-        } finally {
-            TenantInterceptor.clear();
-        }
+        List<AppointmentResponseDto> appointments = TenantScope.withTenant(tenantId,
+                () -> appointmentService.findAppointmentsByClientID(clientOpt.get().getId()));
         if (appointments.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No tenés citas registradas.");
         } else {
@@ -589,13 +583,8 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        List<AppointmentResponseDto> appointments;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            appointments = appointmentService.findAppointmentsByClientID(clientOpt.get().getId());
-        } finally {
-            TenantInterceptor.clear();
-        }
+        List<AppointmentResponseDto> appointments = TenantScope.withTenant(tenantId,
+                () -> appointmentService.findAppointmentsByClientID(clientOpt.get().getId()));
         LocalDateTime now = LocalDateTime.now();
         List<AppointmentResponseDto> cancellable = appointments.stream()
                 .filter(a -> (a.getStatus() == AppointmentStatus.PENDING || a.getStatus() == AppointmentStatus.CONFIRMED)
@@ -627,16 +616,14 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        boolean ok;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            ok = appointmentService.cancelAppointment(appointmentId);
-        } catch (Exception e) {
-            log.error("Error cancelando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
-            ok = false;
-        } finally {
-            TenantInterceptor.clear();
-        }
+        boolean ok = TenantScope.withTenant(tenantId, () -> {
+            try {
+                return appointmentService.cancelAppointment(appointmentId);
+            } catch (Exception e) {
+                log.error("Error cancelando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+                return false;
+            }
+        });
         channel.sendMessage(msg.chatId(), ok
                 ? "✅ Cita cancelada."
                 : "No se pudo cancelar esa cita (¿ya está cancelada o no es tuya?).");
@@ -674,14 +661,9 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        List<AppointmentResponseDto> appointments;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            appointments = appointmentService.findAppointmentsByFilters(
-                    stylistOpt.get().getId(), null, null, from.atStartOfDay(), to.atTime(LocalTime.MAX));
-        } finally {
-            TenantInterceptor.clear();
-        }
+        List<AppointmentResponseDto> appointments = TenantScope.withTenant(tenantId,
+                () -> appointmentService.findAppointmentsByFilters(
+                        stylistOpt.get().getId(), null, null, from.atStartOfDay(), to.atTime(LocalTime.MAX)));
         List<AppointmentResponseDto> filtered = appointments.stream()
                 .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED && a.getStatus() != AppointmentStatus.REJECTED)
                 .sorted((a, b) -> a.getStartDate().compareTo(b.getStartDate()))
@@ -793,16 +775,15 @@ public class TelegramUpdateHandler {
                 .endDate(date.atTime(end))
                 .reason("Bloqueado desde el bot")
                 .build();
-        TenantInterceptor.setCurrentTenantId(tenantId);
         try {
-            blockedSlotService.create(dto);
-            channel.sendMessage(msg.chatId(),
-                    "✅ Horario bloqueado: " + date + " de " + start.format(TIME_FMT) + " a " + end.format(TIME_FMT) + ".");
+            TenantScope.runWithTenant(tenantId, () -> {
+                blockedSlotService.create(dto);
+                channel.sendMessage(msg.chatId(),
+                        "✅ Horario bloqueado: " + date + " de " + start.format(TIME_FMT) + " a " + end.format(TIME_FMT) + ".");
+            });
         } catch (Exception e) {
             log.error("Error bloqueando horario para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
             channel.sendMessage(msg.chatId(), "No se pudo bloquear ese horario. Intentá de nuevo.");
-        } finally {
-            TenantInterceptor.clear();
         }
         showMenu(msg, tenantId);
         updateState(state, STEP_MENU, null);
@@ -851,14 +832,9 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        List<AppointmentResponseDto> appointments;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            appointments = appointmentService.findAppointmentsByFilters(
-                    stylistOpt.get().getId(), null, null, LocalDateTime.now().minusHours(1), null);
-        } finally {
-            TenantInterceptor.clear();
-        }
+        List<AppointmentResponseDto> appointments = TenantScope.withTenant(tenantId,
+                () -> appointmentService.findAppointmentsByFilters(
+                        stylistOpt.get().getId(), null, null, LocalDateTime.now().minusHours(1), null));
         List<AppointmentResponseDto> manageable = appointments.stream()
                 .filter(a -> a.getStatus() == AppointmentStatus.PENDING || a.getStatus() == AppointmentStatus.CONFIRMED)
                 .sorted((a, b) -> a.getStartDate().compareTo(b.getStartDate()))
@@ -893,22 +869,20 @@ public class TelegramUpdateHandler {
             updateState(state, STEP_MENU, null);
             return;
         }
-        boolean ok;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            if (PREFIX_APPT_COMPLETE.equals(prefix)) {
-                ok = appointmentService.completeAppointment(appointmentId);
-            } else if (PREFIX_APPT_NOSHOW.equals(prefix)) {
-                ok = appointmentService.noShowAppointment(appointmentId);
-            } else {
-                ok = appointmentService.cancelAppointmentByStylist(appointmentId);
+        boolean ok = TenantScope.withTenant(tenantId, () -> {
+            try {
+                if (PREFIX_APPT_COMPLETE.equals(prefix)) {
+                    return appointmentService.completeAppointment(appointmentId);
+                } else if (PREFIX_APPT_NOSHOW.equals(prefix)) {
+                    return appointmentService.noShowAppointment(appointmentId);
+                } else {
+                    return appointmentService.cancelAppointmentByStylist(appointmentId);
+                }
+            } catch (Exception e) {
+                log.error("Error gestionando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+                return false;
             }
-        } catch (Exception e) {
-            log.error("Error gestionando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
-            ok = false;
-        } finally {
-            TenantInterceptor.clear();
-        }
+        });
         channel.sendMessage(msg.chatId(), ok
                 ? "✅ Listo."
                 : "No se pudo actualizar esa cita (¿ya no está activa?).");
@@ -924,16 +898,14 @@ public class TelegramUpdateHandler {
             channel.sendMessage(msg.chatId(), "Cita inválida.");
             return;
         }
-        boolean ok;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            ok = appointmentService.confirmAppointment(appointmentId);
-        } catch (Exception e) {
-            log.error("Error confirmando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
-            ok = false;
-        } finally {
-            TenantInterceptor.clear();
-        }
+        boolean ok = TenantScope.withTenant(tenantId, () -> {
+            try {
+                return appointmentService.confirmAppointment(appointmentId);
+            } catch (Exception e) {
+                log.error("Error confirmando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+                return false;
+            }
+        });
         channel.sendMessage(msg.chatId(), ok
                 ? "✅ ¡Gracias por confirmar! Te esperamos."
                 : "No pudimos confirmar tu cita (¿ya estaba confirmada o cancelada?).");
@@ -947,16 +919,14 @@ public class TelegramUpdateHandler {
             channel.sendMessage(msg.chatId(), "Cita inválida.");
             return;
         }
-        boolean ok;
-        TenantInterceptor.setCurrentTenantId(tenantId);
-        try {
-            ok = appointmentService.cancelAppointment(appointmentId);
-        } catch (Exception e) {
-            log.error("Error cancelando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
-            ok = false;
-        } finally {
-            TenantInterceptor.clear();
-        }
+        boolean ok = TenantScope.withTenant(tenantId, () -> {
+            try {
+                return appointmentService.cancelAppointment(appointmentId);
+            } catch (Exception e) {
+                log.error("Error cancelando cita {} para chat_id={}: {}", appointmentId, msg.chatId(), e.getMessage(), e);
+                return false;
+            }
+        });
         channel.sendMessage(msg.chatId(), ok
                 ? "❌ Tu cita fue cancelada. Si querés reagendar, usá «Agendar cita»."
                 : "No pudimos cancelar tu cita (¿ya está cancelada?).");

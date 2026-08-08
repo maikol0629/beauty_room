@@ -22,7 +22,7 @@
 
 ---
 
-## Fase 1 — Wrapper de tenant (`withTenant`/`runWithTenant`)
+## Fase 1 (HECHA el 7/8/2026) — Wrapper de tenant (`withTenant`/`runWithTenant`)
 
 **Problema crítico nº2.** Riesgo de fuga de ThreadLocal si una ruta de error omite `clear()`.
 
