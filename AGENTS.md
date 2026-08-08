@@ -10,7 +10,9 @@ Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en
 - No hay lint ni formatter configurado. La verificación es compile + tests.
 
 ## Base de datos (gotchas)
-- Local: db `beauty_room`, user `dev` / `dev123` en `localhost:3306` (definidos en `docker-compose.yml`).
+- Local: db `beauty_room`, user `dev` / `dev123` en `localhost:3306` (definidos en `src/main/resources/docker-compose.yml`).
+- Flyway NO está en uso: las deps `flyway-core`/`flyway-mysql` 10.20.0 y `db/migration/V1__init_schema.sql` existen, pero `spring.flyway.enabled=${FLYWAY_ENABLED:false}` en TODOS los perfiles. El esquema real lo define Hibernate `create-drop` + `import.sql`. `V1__init_schema.sql` puede desincronizarse de las entidades: NO confíes en él como fuente de verdad. (Decisión tomada por incompatibilidades entre perfiles/ecosistemas; activar Flyway es tarea pendiente del plan de mejora.)
+- Perfiles: `spring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}`. Existen `application-{dev,test,staging,prod}.properties`. `staging`/`prod` exigen `DB_URL`/`DB_USERNAME`/`DB_PASSWORD` desde env (sin fallback); `test` usa la db `beauty_room_test`.
 - `spring.jpa.hibernate.ddl-auto=create-drop`: el esquema se recrea en CADA arranque y `import.sql` se re-ejecuta (`spring.sql.init.mode=always`). Cualquier dato creado a mano se pierde al reiniciar.
 - Los tests `@DataJpaTest` y `@SpringBootTest` usan la MariaDB real (`@AutoConfigureTestDatabase(replace = NONE)`); necesitan la DB corriendo. Los tests de Services usan Mockito y no la requieren.
 - `import.sql` siembra 3 tenants (ids 1-3: Salón María `salon-maria-001`, Estilos Ana `estilos-ana-001`, Beauty Room Pro `beauty-room-pro-001`) y users con ids 1-4 (hash BCrypt de `password`); `Stylist`/`Client` reutilizan el mismo `id` que `users`. john@example.com y alice@example.com → tenant 1; jane@example.com y bob@example.com → tenant 2.
@@ -18,10 +20,15 @@ Backend Spring Boot (Java 21, Boot 3.2.3, MariaDB) para agendamiento de citas en
 ## Arquitectura
 - Paquete base `com.mr.sb.beauty_room`: `Controllers/`, `Services/` (interfaces `I*`), `Services/implement/` (`*ServiceImplement`), `repository/`, `entities/`, `DTOS/`, `Security/`, `Exceptions/`.
 - Patrón: Controller → interfaz `IService` → `*ServiceImplement` → Repository. Nuevas features siguen este patrón.
+- DTOs unificados a camelCase (Fase 3 del plan de mejora): TODOS los campos de DTO (request y response) son camelCase (`clientId`, `stylistId`, `serviceId`, `telegramChatId`, `nameClient`...). NUNCA uses snake_case en DTOs nuevos. OJO: las entidades JPA SÍ conservan snake_case (`name_client`, `telegram_chat_id`, `name_service`) — no las renombres, viven a nivel de BD/JPQL.
 - `User` es la entidad base con herencia JOINED; `Stylist` y `Client` extienden `User`. `Role` es enum (CLIENT, STYLIST, ADMIN).
 - OJO con el typo existente: el servicio de horarios es `StylistSheduleServiceImplement` (sin "c") aunque la interfaz es `IStylistScheduleService`. No lo "corrijas" como parte de otro cambio.
-- Los DTOs mezclan nombres: entrada en snake_case (`id_client`, `id_stylist`, `name_service`) pero respuesta en camelCase (`idService`). Respeta el estilo del DTO que estés tocando.
-- Seguridad: JWT (jjwt 0.11.5) vía `JwtAuthenticationFilter`; endpoints públicos listados en `SecurityConfig`. El secret está hardcodeado en `application.properties`.
+- Seguridad: JWT (jjwt 0.11.5) vía `JwtAuthenticationFilter`; endpoints públicos listados en `SecurityConfig`. El secret viene de `${JWT_SECRET_KEY:...}` con fallback hardcodeado en `application.properties` (pendiente de externalizar por completo en el plan de mejora).
+
+## Plan de mejora (`docs/plan-mejora-mantenimiento.md`)
+Plan de mantenibilidad/operación (Fases 1-6) para dejar de ser un MVP. Estado actual:
+- HECHO: perfiles `dev`/`test`/`staging`/`prod` definidos; secretos externalizados vía env vars (fallback en `application.properties`; `.env` opcional vía `spring.config.import` en `application.properties`, plantilla en `.env.example`); backup/restauración documentado en `docs/backup-restore-mariadb.md`; manejo centralizado de excepciones (`Controllers/GlobalExceptionHandler` + `ApiErrorResponse`); OpenAPI/Swagger (springdoc 2.3.0); Fase 3 COMPLETADA (DTOs camelCase, constructor injection sin `@Autowired` de campo, slots extraídos a `IAvailabilityService`/`AvailabilityServiceImplement`, `getAvailableSlots` queda como delegado en `IAppointmentService`).
+- PENDIENTE: activar Flyway (Fase 2, ver gotcha de BD arriba), health checks/métricas (no hay `spring-boot-starter-actuator`), CI/CD (no hay `.github/`), versionado de API (`/api/v1`), política de dependencias.
 
 ## Multitenant (Fase 0 — COMPLETADA)
 - Entidad `Tenant` + enums `TenantPlan`/`TenantStatus`. Toda entidad de negocio tiene `@ManyToOne(fetch = LAZY) Tenant tenant` con `@JsonIgnore` (NO `@JsonBackReference`).

@@ -23,14 +23,14 @@ public class RegisterRequest {
     private String password;
     
     @NotBlank(message = "El nombre es obligatorio")
-    private String name_client;
+    private String nameClient;
     
     @NotBlank(message = "El teléfono es obligatorio")
     private String phone;
     
     // Opcional: id de chat de Telegram para el cliente
-    private String telegram_chat_id;
+    private String telegramChatId;
     
     // Campos específicos para Stylist
-    private String name_stylist;
+    private String nameStylist;
 } 

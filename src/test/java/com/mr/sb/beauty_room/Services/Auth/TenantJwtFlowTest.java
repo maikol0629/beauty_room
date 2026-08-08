@@ -48,7 +48,7 @@ class TenantJwtFlowTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("cliente-" + suffix + "@test.com")
                 .password("password")
-                .name_client("Nuevo Cliente")
+                .nameClient("Nuevo Cliente")
                 .phone("3000000000")
                 .build();
 
@@ -63,7 +63,7 @@ class TenantJwtFlowTest {
         RegisterRequest request = RegisterRequest.builder()
                 .email("sin-tenant-" + UUID.randomUUID() + "@test.com")
                 .password("password")
-                .name_client("Sin Tenant")
+                .nameClient("Sin Tenant")
                 .phone("3000000000")
                 .build();
 

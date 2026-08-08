@@ -1,12 +1,13 @@
 package com.mr.sb.beauty_room.Services.implement;
 
 import com.mr.sb.beauty_room.DTOS.telegram.TelegramMessage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -19,7 +20,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TelegramChannelTest {
@@ -27,8 +30,15 @@ class TelegramChannelTest {
     @Mock
     private TelegramClient telegramClient;
 
-    @InjectMocks
+    @Mock
+    private ObjectProvider<TelegramClient> telegramClientProvider;
+
     private TelegramChannel channel;
+
+    @BeforeEach
+    void setUp() {
+        channel = new TelegramChannel(telegramClientProvider);
+    }
 
     @Test
     void parseUpdate_message_shouldReturnNormalizedMessage() {
@@ -56,6 +66,7 @@ class TelegramChannelTest {
 
     @Test
     void sendKeyboard_shouldBuildMessageWithReplyMarkup() throws Exception {
+        when(telegramClientProvider.getIfAvailable()).thenReturn(telegramClient);
         channel.sendKeyboard("1", "texto", List.of("A", "B"));
 
         ArgumentCaptor<SendMessage> captor = ArgumentCaptor.forClass(SendMessage.class);
@@ -69,13 +80,16 @@ class TelegramChannelTest {
 
     @Test
     void sendMessage_withoutClient_shouldNotThrow() {
-        TelegramChannel bare = new TelegramChannel();
+        ObjectProvider<TelegramClient> emptyProvider = mock(ObjectProvider.class);
+        when(emptyProvider.getIfAvailable()).thenReturn(null);
+        TelegramChannel bare = new TelegramChannel(emptyProvider);
         bare.sendMessage("1", "hola");
         bare.sendKeyboard("1", "texto", List.of("A"));
     }
 
     @Test
     void sendMessage_shouldBuildMessageAndExecute() throws Exception {
+        when(telegramClientProvider.getIfAvailable()).thenReturn(telegramClient);
         channel.sendMessage("2", "adios");
 
         verify(telegramClient).execute(any(SendMessage.class));

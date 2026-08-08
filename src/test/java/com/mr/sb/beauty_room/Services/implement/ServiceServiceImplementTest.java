@@ -57,7 +57,7 @@ class ServiceServiceImplementTest {
                 .description("Corte basico")
                 .price(15000)
                 .duration(30)
-                .id_stylist(stylist.getId())
+                .stylistId(stylist.getId())
                 .build();
 
         when(stylistRepository.findByIdAndTenantId(stylist.getId(), TENANT_ID)).thenReturn(Optional.of(stylist));
@@ -81,7 +81,7 @@ class ServiceServiceImplementTest {
                 .description("Corte basico")
                 .price(15000)
                 .duration(30)
-                .id_stylist(99L)
+                .stylistId(99L)
                 .build();
 
         when(stylistRepository.findByIdAndTenantId(99L, TENANT_ID)).thenReturn(Optional.empty());
@@ -112,11 +112,11 @@ class ServiceServiceImplementTest {
 
         assertThat(result).hasSize(1);
         ServiceResponseDto dto = result.get(0);
-        assertThat(dto.getIdService()).isEqualTo(service.getId());
+        assertThat(dto.getId()).isEqualTo(service.getId());
         assertThat(dto.getName()).isEqualTo(service.getName_service());
         assertThat(dto.getDescription()).isEqualTo(service.getDescription());
         assertThat(dto.getPrice()).isEqualTo(service.getPrice());
-        assertThat(dto.getId_stylist()).isEqualTo(stylist.getId());
+        assertThat(dto.getStylistId()).isEqualTo(stylist.getId());
     }
 
     @Test

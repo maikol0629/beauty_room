@@ -237,7 +237,7 @@ Payload de creación/actualización (`ServiceSaveDto`):
 	"description": "Corte clásico",
 	"price": 15000,
 	"duration": 30,
-	"id_stylist": 1
+	"stylistId": 1
 }
 ```
 
@@ -257,9 +257,9 @@ Payload de creación/actualización (`AppointmentSaveDto`):
 ```json
 {
 	"startDate": "2025-01-10T10:00:00",
-	"id_client": 1,
-	"id_stylist": 1,
-	"id_service": 1
+	"clientId": 1,
+	"stylistId": 1,
+	"serviceId": 1
 }
 ```
 

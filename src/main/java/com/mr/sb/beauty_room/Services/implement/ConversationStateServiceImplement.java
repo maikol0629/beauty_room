@@ -3,17 +3,17 @@ package com.mr.sb.beauty_room.Services.implement;
 import com.mr.sb.beauty_room.Services.IConversationStateService;
 import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.repository.ConversationStateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ConversationStateServiceImplement implements IConversationStateService {
 
-    @Autowired
-    private ConversationStateRepository conversationStateRepository;
+    private final ConversationStateRepository conversationStateRepository;
 
     @Override
     public ConversationState getOrCreate(String chatId) {

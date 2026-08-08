@@ -18,7 +18,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_client\": \"Cliente Nuevo\",\n  \"email\": \"cliente@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3001112233\",\n  \"telegram_chat_id\": \"999999999\"\n}"
+              "raw": "{\n  \"nameClient\": \"Cliente Nuevo\",\n  \"email\": \"cliente@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3001112233\",\n  \"telegramChatId\": \"999999999\"\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/auth/register/client", "path": ["api", "auth", "register", "client"]}
           }
@@ -33,7 +33,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_stylist\": \"Estilista Nuevo\",\n  \"email\": \"estilista@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3004445566\"\n}"
+              "raw": "{\n  \"nameStylist\": \"Estilista Nuevo\",\n  \"email\": \"estilista@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3004445566\"\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/auth/register/stylist", "path": ["api", "auth", "register", "stylist"]}
           }
@@ -138,7 +138,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_service\": \"Manicure\",\n  \"description\": \"Manicure basico\",\n  \"price\": 25.0,\n  \"duration\": 45,\n  \"id_stylist\": 1\n}"
+              "raw": "{\n  \"name\": \"Manicure\",\n  \"description\": \"Manicure basico\",\n  \"price\": 25.0,\n  \"duration\": 45,\n  \"stylistId\": 1\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/service/save", "path": ["api", "service", "save"]}
           }
@@ -153,7 +153,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_service\": \"Manicure premium\",\n  \"description\": \"Manicure con esmaltado\",\n  \"price\": 35.0,\n  \"duration\": 60,\n  \"id_stylist\": 1\n}"
+              "raw": "{\n  \"name\": \"Manicure premium\",\n  \"description\": \"Manicure con esmaltado\",\n  \"price\": 35.0,\n  \"duration\": 60,\n  \"stylistId\": 1\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/service/update/1", "path": ["api", "service", "update", "1"]}
           }
@@ -181,7 +181,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_client\": \"Cliente Nuevo\",\n  \"email\": \"cliente2@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3002223344\",\n  \"telegram_chat_id\": \"888888888\"\n}"
+              "raw": "{\n  \"nameClient\": \"Cliente Nuevo\",\n  \"email\": \"cliente2@test.com\",\n  \"password\": \"password\",\n  \"phone\": \"3002223344\",\n  \"telegramChatId\": \"888888888\"\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/client/register", "path": ["api", "client", "register"]}
           }
@@ -212,7 +212,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Alice Johnson\",\n  \"email\": \"alice@example.com\",\n  \"phone\": \"5551234\",\n  \"telegram_chat_id\": \"111111111\"\n}"
+              "raw": "{\n  \"name\": \"Alice Johnson\",\n  \"email\": \"alice@example.com\",\n  \"phone\": \"5551234\",\n  \"telegramChatId\": \"111111111\"\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/client/3", "path": ["api", "client", "3"]}
           }
@@ -271,7 +271,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"id_client\": 3,\n  \"id_stylist\": 1,\n  \"id_service\": 1\n}"
+              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"clientId\": 3,\n  \"stylistId\": 1,\n  \"serviceId\": 1\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/appointment/save", "path": ["api", "appointment", "save"]}
           }
@@ -286,7 +286,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"id_client\": 3,\n  \"id_stylist\": 1,\n  \"id_service\": 1\n}"
+              "raw": "{\n  \"startDate\": \"2026-08-10T10:00:00\",\n  \"clientId\": 3,\n  \"stylistId\": 1,\n  \"serviceId\": 1\n}"
             },
             "url": {"raw": "{{BASE_URL}}/api/appointment/save", "path": ["api", "appointment", "save"]}
           }

@@ -40,9 +40,9 @@ public class AuthenticationService {
         var client = Client.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .name_client(request.getName_client())
+                .name_client(request.getNameClient())
                 .phone(request.getPhone())
-                .telegram_chat_id(request.getTelegram_chat_id())
+                .telegram_chat_id(request.getTelegramChatId())
                 .tenant(tenant)
                 .build();
 
@@ -59,7 +59,7 @@ public class AuthenticationService {
         var stylist = Stylist.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .name_stylist(request.getName_stylist())
+                .name_stylist(request.getNameStylist())
                 .phone(request.getPhone())
                 .tenant(tenant)
                 .build();

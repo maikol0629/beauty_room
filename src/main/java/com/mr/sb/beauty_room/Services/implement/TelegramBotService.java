@@ -4,7 +4,7 @@ import com.mr.sb.beauty_room.Config.TelegramBotProperties;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
@@ -19,9 +19,7 @@ public class TelegramBotService {
 
     private final TelegramBotProperties properties;
     private final TelegramUpdateHandler telegramUpdateHandler;
-
-    @Autowired(required = false)
-    private TelegramClient telegramClient;
+    private final ObjectProvider<TelegramClient> telegramClientProvider;
 
     public String getBotUsername() {
         return properties.getUsername();
@@ -45,6 +43,7 @@ public class TelegramBotService {
             log.warn("telegram.bot.webhook-url vacío: se omite setWebhook. Usa ngrok o una URL HTTPS pública (ej: https://host/api/telegram/webhook).");
             return;
         }
+        TelegramClient telegramClient = telegramClientProvider.getIfAvailable();
         if (telegramClient == null) {
             log.warn("Telegram client no configurado: no se puede registrar el webhook.");
             return;

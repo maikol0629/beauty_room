@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ServiceResponseDto {
 
-    long idService;
+    private long id;
     private String name;
     private String description;
     private float price;
     private int duration;
-    private long id_stylist;
+    private long stylistId;
 }

@@ -30,11 +30,11 @@ public class ServiceServiceImplement implements IServiceService {
 
         return StreamSupport.stream(services.spliterator(),false).map(
                 service -> ServiceResponseDto.builder()
-                        .idService(service.getId())
+                        .id(service.getId())
                         .price(service.getPrice())
                         .name(service.getName_service())
                         .description(service.getDescription())
-                        .id_stylist(service.getStylist().getId())
+                        .stylistId(service.getStylist().getId())
                         .build()
 
         ).collect(Collectors.toList());
@@ -49,11 +49,11 @@ public class ServiceServiceImplement implements IServiceService {
             Service service = optService.get();
 
             return ServiceResponseDto.builder()
-                    .idService(service.getId())
+                    .id(service.getId())
                     .price(service.getPrice())
                     .name(service.getName_service())
                     .description(service.getDescription())
-                    .id_stylist(service.getStylist().getId())
+                    .stylistId(service.getStylist().getId())
                     .build();
         }
 
@@ -70,11 +70,11 @@ public class ServiceServiceImplement implements IServiceService {
 
         return services.stream()
                 .map(service -> ServiceResponseDto.builder()
-                        .idService(service.getId())
+                        .id(service.getId())
                         .price(service.getPrice())
                         .name(service.getName_service())
                         .description(service.getDescription())
-                        .id_stylist(service.getStylist().getId())
+                        .stylistId(service.getStylist().getId())
                         .build()
                 )
                 .collect(Collectors.toList());
@@ -86,7 +86,7 @@ public class ServiceServiceImplement implements IServiceService {
         Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
 
         Long stylistId = Objects.requireNonNull(
-                serviceSaveDto.getId_stylist(),
+                serviceSaveDto.getStylistId(),
                 "Stylist id is required"
         );
 

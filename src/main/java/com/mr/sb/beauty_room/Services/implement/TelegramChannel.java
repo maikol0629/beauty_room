@@ -3,9 +3,10 @@ package com.mr.sb.beauty_room.Services.implement;
 import com.mr.sb.beauty_room.DTOS.telegram.Button;
 import com.mr.sb.beauty_room.DTOS.telegram.TelegramMessage;
 import com.mr.sb.beauty_room.Services.IMessagingChannel;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -22,16 +23,21 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class TelegramChannel implements IMessagingChannel {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramChannel.class);
     private static final int INLINE_BUTTONS_PER_ROW = 3;
 
-    @Autowired(required = false)
-    private TelegramClient telegramClient;
+    private final ObjectProvider<TelegramClient> telegramClientProvider;
+
+    private TelegramClient clientOrNull() {
+        return telegramClientProvider.getIfAvailable();
+    }
 
     @Override
     public void sendMessage(String chatId, String text) {
+        TelegramClient telegramClient = clientOrNull();
         if (telegramClient == null) {
             log.warn("Telegram client no configurado (falta telegram.bot.token). Mensaje no enviado a chat {}: {}", chatId, text);
             return;
@@ -49,6 +55,7 @@ public class TelegramChannel implements IMessagingChannel {
 
     @Override
     public void sendKeyboard(String chatId, String text, List<String> buttons) {
+        TelegramClient telegramClient = clientOrNull();
         if (telegramClient == null) {
             log.warn("Telegram client no configurado (falta telegram.bot.token). Keyboard no enviado a chat {}: {}", chatId, text);
             return;
@@ -72,6 +79,7 @@ public class TelegramChannel implements IMessagingChannel {
 
     @Override
     public void sendInlineKeyboard(String chatId, String text, List<Button> buttons) {
+        TelegramClient telegramClient = clientOrNull();
         if (telegramClient == null) {
             log.warn("Telegram client no configurado (falta telegram.bot.token). Inline keyboard no enviado a chat {}: {}", chatId, text);
             return;

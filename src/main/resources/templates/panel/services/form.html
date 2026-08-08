@@ -35,12 +35,12 @@
         </div>
       </div>
 
-      <label for="id_stylist">Estilista</label>
-      <select id="id_stylist" th:field="*{id_stylist}">
+      <label for="stylistId">Estilista</label>
+      <select id="stylistId" th:field="*{stylistId}">
         <option value="">Seleccionar...</option>
         <option th:each="st : ${stylists}" th:value="${st.id}" th:text="${st.name}">Estilista</option>
       </select>
-      <div th:if="${#fields.hasErrors('id_stylist')}" class="error" th:errors="*{id_stylist}"></div>
+      <div th:if="${#fields.hasErrors('stylistId')}" class="error" th:errors="*{stylistId}"></div>
 
       <div style="margin-top:20px; display:flex; gap:12px;">
         <button type="submit" th:text="${serviceId != null} ? 'Guardar cambios' : 'Crear servicio'">Guardar</button>

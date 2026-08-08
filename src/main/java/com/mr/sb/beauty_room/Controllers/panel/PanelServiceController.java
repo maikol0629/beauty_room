@@ -50,7 +50,7 @@ public class PanelServiceController {
                 .description(dto.getDescription())
                 .price(dto.getPrice())
                 .duration(dto.getDuration())
-                .id_stylist(dto.getId_stylist())
+                .stylistId(dto.getStylistId())
                 .build());
         model.addAttribute("serviceId", id);
         model.addAttribute("stylists", tenantHelper.withTenant(stylistService::findAll));

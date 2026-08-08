@@ -57,9 +57,9 @@ class AppointmentControllerE2ETest {
         LocalDateTime start = nextMonday.atTime(10, 0);
         String appointmentJson = "{"
                 + "\"startDate\": \"" + start + "\","
-                + "\"id_client\": 3,"
-                + "\"id_stylist\": 1,"
-                + "\"id_service\": 1"
+                + "\"clientId\": 3,"
+                + "\"stylistId\": 1,"
+                + "\"serviceId\": 1"
                 + "}";
 
         mockMvc.perform(post("/api/appointment/save")

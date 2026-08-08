@@ -509,9 +509,9 @@ public class TelegramUpdateHandler {
         Client client = ensureClient(msg, tenantId);
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(LocalDate.parse(dateStr).atTime(LocalTime.parse(timeStr)))
-                .id_client(client.getId())
-                .id_stylist(Long.parseLong(stylistId))
-                .id_service(Long.parseLong(serviceId))
+                .clientId(client.getId())
+                .stylistId(Long.parseLong(stylistId))
+                .serviceId(Long.parseLong(serviceId))
                 .build();
 
         TenantInterceptor.setCurrentTenantId(tenantId);

@@ -90,9 +90,9 @@ class AppointmentServiceImplementTest {
 
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(start)
-                .id_client(client.getId())
-                .id_stylist(stylist.getId())
-                .id_service(service.getId())
+                .clientId(client.getId())
+                .stylistId(stylist.getId())
+                .serviceId(service.getId())
                 .build();
 
         StylistSchedule schedule = StylistSchedule.builder()
@@ -135,9 +135,9 @@ class AppointmentServiceImplementTest {
 
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(start)
-                .id_client(client.getId())
-                .id_stylist(stylist.getId())
-                .id_service(service.getId())
+                .clientId(client.getId())
+                .stylistId(stylist.getId())
+                .serviceId(service.getId())
                 .build();
 
         when(clientRepository.findByIdAndTenantId(client.getId(), TENANT_ID)).thenReturn(Optional.of(client));
@@ -158,9 +158,9 @@ class AppointmentServiceImplementTest {
 
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(start)
-                .id_client(client.getId())
-                .id_stylist(stylist.getId())
-                .id_service(service.getId())
+                .clientId(client.getId())
+                .stylistId(stylist.getId())
+                .serviceId(service.getId())
                 .build();
 
         StylistSchedule schedule = StylistSchedule.builder()
@@ -192,9 +192,9 @@ class AppointmentServiceImplementTest {
 
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(start)
-                .id_client(client.getId())
-                .id_stylist(stylist.getId())
-                .id_service(service.getId())
+                .clientId(client.getId())
+                .stylistId(stylist.getId())
+                .serviceId(service.getId())
                 .build();
 
         StylistSchedule schedule = StylistSchedule.builder()

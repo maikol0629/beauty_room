@@ -258,7 +258,7 @@ class TelegramUpdateHandlerTest {
         handler.handle(new Update());
 
         verify(appointmentService).save(argThat(dto ->
-                dto.getId_client() == 3L && dto.getId_service() == 1L && dto.getId_stylist() == 5L));
+                dto.getClientId() == 3L && dto.getServiceId() == 1L && dto.getStylistId() == 5L));
         verify(channel).sendMessage(eq("111"), contains("¡Listo!"));
         verify(conversationStateService).save(argThat(s -> "MENU".equals(s.getCurrentStep())));
     }

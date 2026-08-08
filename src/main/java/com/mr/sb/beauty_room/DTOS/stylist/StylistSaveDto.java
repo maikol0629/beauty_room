@@ -24,6 +24,6 @@ public class StylistSaveDto {
     @NotBlank
     @Size(min = 7, max = 20)
     private String phone;
-    private long id_stylist_room;
+    private long stylistRoomId;
     private String telegramChatId;
 }

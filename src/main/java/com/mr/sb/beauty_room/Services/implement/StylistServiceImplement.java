@@ -7,7 +7,7 @@ import com.mr.sb.beauty_room.Services.IStylistService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.StylistRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +15,10 @@ import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @Service
+@RequiredArgsConstructor
 public class StylistServiceImplement implements IStylistService {
 
-    @Autowired
-    private StylistRepository stylistRepository;
+    private final StylistRepository stylistRepository;
 
     @Override
     public List<StylistResponseDto> findAll() {

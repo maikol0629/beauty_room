@@ -62,7 +62,7 @@ class PanelSecurityTest {
                         .param("description", "Servicio creado desde el panel")
                         .param("price", "10000")
                         .param("duration", "30")
-                        .param("id_stylist", "1"))
+                        .param("stylistId", "1"))
                 .andExpect(status().is3xxRedirection());
 
         mockMvc.perform(get("/panel/services").session(session))

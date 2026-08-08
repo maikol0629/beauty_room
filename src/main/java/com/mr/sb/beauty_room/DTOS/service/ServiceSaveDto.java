@@ -27,6 +27,6 @@ public class ServiceSaveDto {
     private long duration;
 
     @NotNull
-    private Long id_stylist;
+    private Long stylistId;
 
 }

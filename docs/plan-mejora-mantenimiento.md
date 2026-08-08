@@ -87,36 +87,31 @@ Hacer que la base de datos sea tratable, reproducible y segura para evolución c
 
 ---
 
-## Fase 3 — Calidad del código y arquitectura (Semanas 3-5)
+## Fase 3 — Calidad del código y arquitectura (Semanas 3-5) ✅ COMPLETADA
 
-### Objetivo
+> **Estado (7 de agosto de 2026):** los 4 puntos de esta fase están resueltos. Detalle de la implementación:
 
-Mejorar la mantenibilidad interna del backend para reducir deuda técnica.
+1. **Unificar DTOs y contratos de API** ✅
+   - Estándar definido: **camelCase en todos los campos de DTOs** (request y response).
+   - Renombrados: `id_client`→`clientId`, `id_stylist`→`stylistId`, `id_service`→`serviceId`, `id_stylist_room`→`stylistRoomId`, `idService`→`id`, `name_client`→`nameClient`, `name_stylist`→`nameStylist`, `telegram_chat_id`→`telegramChatId` (en DTOs: `AppointmentSaveDto`, `ClientSaveDto`, `ServiceSaveDto`, `ServiceResponseDto`, `StylistSaveDto`, `RegisterRequest`).
+   - Contrato actualizado en servicios, controllers (incl. panel Thymeleaf y sus templates `form.html`/`list.html`), bot Telegram (`TelegramUpdateHandler`) y la collection Postman `beauty_room_MVP.postman_collection.json`.
+   - **Breaking change:** el JSON de la API ya NO acepta snake_case en los campos renombrados. Sin usuarios reales aún (Fase 7 pendiente), es aceptable.
+   - NOTA: las **entidades JPA** conservan snake_case (`name_client`, `telegram_chat_id`, `name_service`); el snake_case solo persiste a nivel de BD/entidad, no en el contrato JSON.
 
-### Tareas
+2. **Constructor injection** ✅
+   - Eliminados los 5 `@Autowired` de campo/constructor redundantes. Ahora: `ConversationStateServiceImplement`, `StylistServiceImplement` usan `@RequiredArgsConstructor`; `TelegramBotService` y `TelegramChannel` inyectan el `TelegramClient` opcional (bean `@ConditionalOnProperty`) vía `ObjectProvider<TelegramClient>.getIfAvailable()`; `AppointmentServiceImplement` mantiene constructor explícito.
+   - No queda inyección por campo en `src/main`.
 
-1. Unificar DTOs y contratos de API
-   - Definir un estándar para nombres de campos y respuestas.
-   - Reducir mezclas entre snake_case y camelCase.
-   - Documentar el contrato de cada endpoint.
+3. **Centralizar manejo de excepciones** ✅
+   - Ya existía: `Controllers/GlobalExceptionHandler` (`@RestControllerAdvice`) + `ApiErrorResponse` (errores de validación, tenant, acceso, conflicto 409, integridad, no encontrado, runtime).
+   - Arreglado el test unitario `GlobalExceptionHandlerTest` (usaba `rejectValue` sobre un target `Object` sin la propiedad, lo que lanzaba `NotReadableProperty`; ahora usa `FieldError` explícito).
 
-2. Sustituir inyección por campo por constructor injection
-   - Revisar controladores y servicios principales.
-   - Mejorar testabilidad y claridad.
+4. **Revisar nombres y responsabilidades** ✅
+   - Extraído el cálculo de slots de `AppointmentServiceImplement` (era el servicio más sobrecargado, 463 líneas) a un nuevo `IAvailabilityService`/`AvailabilityServiceImplement` (horarios disponibles por estilista/servicio/fecha, con solape de citas y bloqueos). `IAppointmentService.getAvailableSlots` queda como delegado, sin cambios en controllers ni en el bot.
+   - Pendiente futuro (fuera de alcance de esta fase): `TelegramUpdateHandler` (FSM, ~1.080 líneas) sigue siendo el más grande; dividirlo requiere re-diseñar el FSM y es recomendable tras Fase 7.
 
-3. Centralizar manejo de excepciones
-   - Crear un `@ControllerAdvice` o equivalente.
-   - Mapear errores de negocio, validación, autenticación y no encontrado a respuestas consistentes.
-
-4. Revisar nombres y responsabilidades
-   - Identificar servicios sobrecargados.
-   - Separar lógica compleja cuando sea necesario.
-
-### Entregables
-
-- Código más limpio y uniforme.
-- Respuestas de API consistentes.
-- Menor riesgo de regresiones al modificar el sistema.
+### Verificación
+- `./mvnw test`: **78 tests OK, 0 fallos** (incluye E2E de doble-booking 409 vía `clientId`/`stylistId`/`serviceId` y los tests del panel con `stylistId`).
 
 ---
 
@@ -204,19 +199,19 @@ Crear una base sostenible para que el sistema siga creciendo sin perder control.
 ## Prioridades recomendadas
 
 ### Prioridad 1: inmediata
-- Secretos y configuración.
-- Migraciones de base de datos.
-- Manejo de excepciones.
+- Secretos y configuración. ✅ (Fase 1 completada)
+- Migraciones de base de datos. ⏳ Flyway sigue desactivado en todos los perfiles (Fase 2, pendiente)
+- Manejo de excepciones. ✅ (Fase 3)
 
 ### Prioridad 2: corta
-- Constructor injection.
-- DTOs y contratos unificados.
-- Health checks y métricas.
+- Constructor injection. ✅ (Fase 3)
+- DTOs y contratos unificados. ✅ (Fase 3, camelCase en DTOs)
+- Health checks y métricas. ❌ Pendiente (Fase 4)
 
 ### Prioridad 3: media
-- CI/CD.
-- Versionado de API.
-- Política de dependencias.
+- CI/CD. ❌ Pendiente (Fase 5)
+- Versionado de API. ❌ Pendiente (Fase 6)
+- Política de dependencias. ❌ Pendiente (Fase 5)
 
 ---
 

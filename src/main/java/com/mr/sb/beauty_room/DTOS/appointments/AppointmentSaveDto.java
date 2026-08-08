@@ -19,12 +19,12 @@ public class AppointmentSaveDto {
     private LocalDateTime startDate;
 
     @NotNull
-    private Long id_client;
+    private Long clientId;
 
     @NotNull
-    private Long id_stylist;
+    private Long stylistId;
 
     @NotNull
-    private Long id_service;
+    private Long serviceId;
 
 }
