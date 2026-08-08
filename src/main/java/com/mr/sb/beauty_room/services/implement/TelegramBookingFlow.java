@@ -13,6 +13,7 @@ import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import com.mr.sb.beauty_room.services.ITelegramViewService;
+import com.mr.sb.beauty_room.util.TelegramDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +21,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_DATE;
@@ -32,7 +31,6 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_SERVI
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_TIME;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CONFIRM;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
-import static com.mr.sb.beauty_room.services.CallbackConstants.TIME_FMT;
 
 @Service
 @RequiredArgsConstructor
@@ -88,7 +86,7 @@ public class TelegramBookingFlow {
     }
 
     public void trySelectDateByText(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
-        LocalDate date = parseDate(text);
+        LocalDate date = TelegramDateUtils.parseDate(text);
         if (date == null) {
             channel.sendMessage(msg.chatId(), "No entendí la fecha. Usá el formato YYYY-MM-DD (ej: 2026-08-10) o elegí una de las fechas de abajo.");
             view.showDateOptions(msg, data, tenantId);
@@ -100,7 +98,7 @@ public class TelegramBookingFlow {
     public void trySelectTimeByText(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
         LocalTime time;
         try {
-            time = LocalTime.parse(text, TIME_FMT);
+            time = TelegramDateUtils.parseTime(text);
         } catch (Exception e) {
             channel.sendMessage(msg.chatId(), "No entendí la hora. Usá el formato HH:mm (ej: 10:30) o elegí una de las horas de abajo.");
             view.showTimeOptions(msg, data, tenantId);
@@ -128,7 +126,7 @@ public class TelegramBookingFlow {
             return;
         }
         data.put("date", date.toString());
-        channel.sendMessage(msg.chatId(), "Horarios disponibles el " + date.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es")) + " " + date + ":");
+        channel.sendMessage(msg.chatId(), "Horarios disponibles el " + TelegramDateUtils.dayName(date, TextStyle.FULL) + " " + date + ":");
         view.showTimeOptions(msg, data, tenantId);
         stateHelper.updateState(state, STEP_CHOOSE_TIME, data);
     }
@@ -173,7 +171,7 @@ public class TelegramBookingFlow {
                 if (ok) {
                     channel.sendMessage(msg.chatId(),
                             "✅ ¡Listo! Tu cita quedó agendada:\n\n"
-                                    + "• Fecha: " + LocalDate.parse(dateStr).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "\n"
+                                    + "• Fecha: " + TelegramDateUtils.formatDateForUser(LocalDate.parse(dateStr)) + "\n"
                                     + "• Hora: " + timeStr + "\n\n"
                                     + "Te esperamos.");
                     stateHelper.updateState(state, STEP_MENU, null);
@@ -198,17 +196,5 @@ public class TelegramBookingFlow {
     private void endWithMenu(TelegramMessage msg, ConversationState state, Long tenantId, String text) {
         view.sendEndWithMenu(msg, tenantId, text);
         stateHelper.updateState(state, STEP_MENU, null);
-    }
-
-    private LocalDate parseDate(String text) {
-        try {
-            return LocalDate.parse(text.trim());
-        } catch (Exception ignored) {
-        }
-        try {
-            return LocalDate.parse(text.trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        } catch (Exception ignored) {
-        }
-        return null;
     }
 }

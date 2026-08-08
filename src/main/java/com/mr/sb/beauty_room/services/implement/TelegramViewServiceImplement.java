@@ -12,6 +12,7 @@ import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import com.mr.sb.beauty_room.services.ITelegramViewService;
+import com.mr.sb.beauty_room.util.TelegramDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,14 +21,12 @@ import java.time.LocalTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import static com.mr.sb.beauty_room.services.CallbackConstants.CB_ABORT;
 import static com.mr.sb.beauty_room.services.CallbackConstants.CB_BACK_DATES;
 import static com.mr.sb.beauty_room.services.CallbackConstants.CB_CONFIRM;
 import static com.mr.sb.beauty_room.services.CallbackConstants.CB_MENU;
-import static com.mr.sb.beauty_room.services.CallbackConstants.DATETIME_FMT;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_APPT_CANCEL;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_APPT_COMPLETE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_APPT_NOSHOW;
@@ -37,7 +36,6 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_CANCEL_APP
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_DATE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_SERVICE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_TIME;
-import static com.mr.sb.beauty_room.services.CallbackConstants.TIME_FMT;
 
 @Service
 @RequiredArgsConstructor
@@ -91,7 +89,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = dates.stream()
-                .map(d -> new Button(d.getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es")) + " " + d,
+                .map(d -> new Button(TelegramDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
                         PREFIX_DATE + d))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
@@ -127,7 +125,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = slots.stream()
-                .map(t -> new Button(t.format(TIME_FMT), PREFIX_TIME + t))
+                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_TIME + t))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
         all.add(new Button("◀ Otra fecha", CB_BACK_DATES));
@@ -141,7 +139,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
                 + "• Servicio: " + (service != null ? service.getNameService() : serviceId) + "\n"
                 + "• Estilista: " + (stylist != null ? stylist.getNameStylist() : stylistId) + "\n"
                 + "• Fecha: " + dateStr + "\n"
-                + "• Hora: " + time.format(TIME_FMT) + "\n\n"
+                + "• Hora: " + time.format(TelegramDateUtils.TIME_FMT) + "\n\n"
                 + "¿Todo correcto?";
         channel.sendInlineKeyboard(msg.chatId(), text, List.of(
                 new Button("✅ Confirmar", CB_CONFIRM),
@@ -159,7 +157,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
                 .toList();
         StringBuilder sb = new StringBuilder("📅 Tus citas:\n\n");
         for (AppointmentResponseDto a : sorted) {
-            sb.append("• ").append(a.getStartDate().format(DATETIME_FMT))
+            sb.append("• ").append(a.getStartDate().format(TelegramDateUtils.DATETIME_FMT))
                     .append(" — ").append(a.getService().getName())
                     .append(" (").append(a.getStatus()).append(")\n");
         }
@@ -178,7 +176,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
         }
         StringBuilder sb = new StringBuilder("📋 Tu agenda:\n\n");
         for (AppointmentResponseDto a : filtered) {
-            sb.append("• ").append(a.getStartDate().format(DATETIME_FMT))
+            sb.append("• ").append(a.getStartDate().format(TelegramDateUtils.DATETIME_FMT))
                     .append(" — ").append(a.getService() != null ? a.getService().getName() : "?")
                     .append(" (").append(a.getClient() != null ? a.getClient().getName() : "?")
                     .append(") [").append(a.getStatus()).append("]\n");
@@ -189,7 +187,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     @Override
     public void showCancelOptions(TelegramMessage msg, List<AppointmentResponseDto> cancellable) {
         List<Button> buttons = cancellable.stream()
-                .map(a -> new Button("Cancelar " + a.getStartDate().format(DATETIME_FMT) + " (" + a.getService().getName() + ")",
+                .map(a -> new Button("Cancelar " + a.getStartDate().format(TelegramDateUtils.DATETIME_FMT) + " (" + a.getService().getName() + ")",
                         PREFIX_CANCEL_APPT + a.getId()))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
@@ -205,7 +203,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = new ArrayList<>(times.stream()
-                .map(t -> new Button(t.format(TIME_FMT), PREFIX_BLOCK_START + t))
+                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_BLOCK_START + t))
                 .toList());
         buttons.add(new Button("◀ Otro día", CB_MENU));
         channel.sendInlineKeyboard(msg.chatId(), "¿Desde qué hora?", buttons);
@@ -240,7 +238,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = new ArrayList<>(times.stream()
-                .map(t -> new Button(t.format(TIME_FMT), PREFIX_BLOCK_END + t))
+                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_BLOCK_END + t))
                 .toList());
         buttons.add(new Button("◀ Cambiar inicio", CB_MENU));
         channel.sendInlineKeyboard(msg.chatId(), "¿Hasta qué hora?", buttons);
@@ -265,7 +263,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     public void showStylistManagementOptions(TelegramMessage msg, List<AppointmentResponseDto> manageable) {
         List<Button> buttons = new ArrayList<>();
         for (AppointmentResponseDto a : manageable) {
-            String label = a.getStartDate().format(TIME_FMT) + " "
+            String label = a.getStartDate().format(TelegramDateUtils.TIME_FMT) + " "
                     + (a.getService() != null ? a.getService().getName() : "") + " · "
                     + (a.getClient() != null ? a.getClient().getName() : "");
             buttons.add(new Button("✅ " + label, PREFIX_APPT_COMPLETE + a.getId()));

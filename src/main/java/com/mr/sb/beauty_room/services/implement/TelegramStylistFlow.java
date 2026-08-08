@@ -13,6 +13,7 @@ import com.mr.sb.beauty_room.services.IBlockedSlotService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import com.mr.sb.beauty_room.services.ITelegramViewService;
+import com.mr.sb.beauty_room.util.TelegramDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,6 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,7 +41,6 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_BLOCK_END;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_BLOCK_START;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_STYLIST_APPT;
-import static com.mr.sb.beauty_room.services.CallbackConstants.TIME_FMT;
 
 @Service
 @RequiredArgsConstructor
@@ -98,7 +97,7 @@ public class TelegramStylistFlow {
         LocalDate today = LocalDate.now();
         for (int i = 0; i < 7; i++) {
             LocalDate d = today.plusDays(i);
-            buttons.add(new Button(d.getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es")) + " " + d,
+            buttons.add(new Button(TelegramDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
                     PREFIX_BLOCK_DATE + d));
         }
         buttons.add(new Button("◀ Volver", CB_MENU));
@@ -148,7 +147,7 @@ public class TelegramStylistFlow {
             TenantScope.runWithTenant(tenantId, () -> {
                 blockedSlotService.create(dto);
                 channel.sendMessage(msg.chatId(),
-                        "✅ Horario bloqueado: " + date + " de " + start.format(TIME_FMT) + " a " + end.format(TIME_FMT) + ".");
+                        "✅ Horario bloqueado: " + date + " de " + start.format(TelegramDateUtils.TIME_FMT) + " a " + end.format(TelegramDateUtils.TIME_FMT) + ".");
             });
         } catch (Exception e) {
             log.error("Error bloqueando horario para chat_id={}: {}", msg.chatId(), e.getMessage(), e);

@@ -6,6 +6,7 @@ import com.mr.sb.beauty_room.services.IConversationStateService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import com.mr.sb.beauty_room.services.ITelegramViewService;
+import com.mr.sb.beauty_room.util.TelegramDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -42,7 +42,6 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_DATE;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_CHOOSE_TIME;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_INITIAL;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
-import static com.mr.sb.beauty_room.services.CallbackConstants.TIME_FMT;
 
 @Service
 @RequiredArgsConstructor
@@ -254,7 +253,7 @@ public class TelegramUpdateHandler {
 
     private void handleTimeCallback(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String timeText) {
         try {
-            bookingFlow.selectTime(msg, state, data, tenantId, LocalTime.parse(timeText, TIME_FMT));
+            bookingFlow.selectTime(msg, state, data, tenantId, TelegramDateUtils.parseTime(timeText));
         } catch (Exception e) {
             channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
             view.showTimeOptions(msg, data, tenantId);
@@ -271,14 +270,14 @@ public class TelegramUpdateHandler {
             }
         } else if (cb.startsWith(PREFIX_BLOCK_START)) {
             try {
-                stylistFlow.selectBlockStart(msg, state, data, tenantId, LocalTime.parse(cb.substring(PREFIX_BLOCK_START.length()), TIME_FMT));
+                stylistFlow.selectBlockStart(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_START.length())));
             } catch (Exception e) {
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockStartOptions(msg, data, tenantId);
             }
         } else if (cb.startsWith(PREFIX_BLOCK_END)) {
             try {
-                stylistFlow.selectBlockEnd(msg, state, data, tenantId, LocalTime.parse(cb.substring(PREFIX_BLOCK_END.length()), TIME_FMT));
+                stylistFlow.selectBlockEnd(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_END.length())));
             } catch (Exception e) {
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockEndOptions(msg, data, tenantId);

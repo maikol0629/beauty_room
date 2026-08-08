@@ -113,17 +113,13 @@
 
 ---
 
-## Fase 5 — Util de fechas/horas (`TelegramDateUtils`)
+## Fase 5 (HECHA el 8/8/2026) — Util de fechas/horas (`TelegramDateUtils`)
 
 **Problema mejora nº7.** Parsing/formatting disperso y con formatos distintos.
 
-- Crear `util/TelegramDateUtils` (estático, sin estado):
-  - `LocalDate parseDate(String)` (hoy: ISO `YYYY-MM-DD` y `dd/MM/yyyy`)
-  - `LocalTime parseTime(String)` (hoy: `HH:mm`)
-  - `String formatDateForUser(LocalDate)` (`dd/MM/yyyy`)
-  - `String formatDateTime(LocalDateTime)` (`dd/MM/yyyy HH:mm` = `DATETIME_FMT`)
-  - `String dayName(LocalDate, TextStyle)` con locale `es` (evita `new Locale("es")` repetido)
-- Reemplazar usos en el handler (y en la vista de Fase 3). `TIME_FMT`/`DATETIME_FMT` pasan a `TelegramDateUtils`.
+- Crear `util/TelegramDateUtils` (estático, sin estado): `parseDate`, `parseTime`, `formatDateForUser`, `formatDateTime`, `dayName` con locale `es`.
+- `TIME_FMT`/`DATETIME_FMT` movidas desde `CallbackConstants` a `TelegramDateUtils`.
+- Reemplazados los usos en `TelegramViewServiceImplement`, `TelegramBookingFlow`, `TelegramStylistFlow` y `TelegramUpdateHandler` (también el formato inline `dd/MM/yyyy` en `confirmAppointment` y el método privado `parseDate` eliminado).
 
 **Verificación:** tests en verde.
 
@@ -183,7 +179,7 @@
 | Alta | 2. TelegramAccountService | Bajo | S (1-2 h) |
 | Alta | 3. TelegramViewService | Bajo-Medio | M (3-4 h) |
 | Media | 4. Orquestadores por flujo | Medio | M-L (1-2 días) |
-| Media | 5. TelegramDateUtils | Bajo | S (1 h) |
+| Media | 5. TelegramDateUtils | Bajo | ✅ HECHA (8/8/2026) |
 | Baja | 6. CallbackConstants | Bajo | S (1 h) |
 | Media | 7. Logs consistentes | Bajo | S |
 | Baja | 8. Renombrar entities.Service→SalonService | ✅ HECHA (7/8/2026) | ver `docs/analisis-nombres-fase8.md` |

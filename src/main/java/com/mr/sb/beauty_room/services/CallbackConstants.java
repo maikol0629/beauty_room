@@ -1,13 +1,8 @@
 package com.mr.sb.beauty_room.services;
 
-import java.time.format.DateTimeFormatter;
-
 public final class CallbackConstants {
     private CallbackConstants() {
     }
-
-    public static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    public static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public static final String STEP_MENU = "MENU";
     public static final String STEP_INITIAL = "INITIAL";
