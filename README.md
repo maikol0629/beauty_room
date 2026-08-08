@@ -93,7 +93,7 @@ El proyecto **soporta multitenant** desde el 5 de agosto de 2026:
 - `tenant_id` en todas las entidades de negocio.
 - Resolución de tenant por request: claim `tenantId` del JWT (login/registro) o header `X-Tenant-ID` (endpoints públicos).
 - Repositorios y services filtran por tenant; acceso a datos de otro tenant devuelve `404` o `[]`.
-- Seed de 3 tenants en `import.sql`.
+- Seed de 3 tenants en `V2__seed_data.sql` (Flyway; `import.sql` solo para el perfil test).
 - 14 tests verdes (incluye `TenantIsolationTest` y `TenantJwtFlowTest`).
 
 **Cómo usar el header en endpoints públicos:**

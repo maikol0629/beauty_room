@@ -288,4 +288,6 @@ Se considerará que el plan ha dado resultados cuando:
 
 ## Siguiente paso recomendado
 
-Empezar por la Fase 1 y la Fase 2, porque son las que más impactan en seguridad y estabilidad del proyecto.
+Fases 1, 2 y 3 están **COMPLETADAS** (secretos por env, perfiles definidos, Flyway activo, DTOs camelCase, constructor injection, manejo de excepciones centralizado).
+
+El siguiente paso pendiente es la **Fase 4 — Observabilidad y operación**: añadir health checks (`spring-boot-starter-actuator`), métricas y logs estructurados, que son los que más impacto tienen para operar el sistema en un entorno real.
