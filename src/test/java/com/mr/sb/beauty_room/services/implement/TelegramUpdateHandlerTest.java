@@ -20,10 +20,11 @@ import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.SalonServiceRepository;
 import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
 import com.mr.sb.beauty_room.services.ITelegramAccountService;
+import com.mr.sb.beauty_room.services.ITelegramViewService;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,8 +69,15 @@ class TelegramUpdateHandlerTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    @InjectMocks
     private TelegramUpdateHandler handler;
+
+    @BeforeEach
+    void setUp() {
+        ITelegramViewService view = new TelegramViewServiceImplement(
+                channel, accountService, appointmentService, stylistScheduleRepository);
+        handler = new TelegramUpdateHandler(channel, conversationStateService, appointmentService,
+                blockedSlotService, accountService, view, serviceRepository, objectMapper);
+    }
 
     @AfterEach
     void clearTenantContext() {
