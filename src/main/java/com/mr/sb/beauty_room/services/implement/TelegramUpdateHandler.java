@@ -13,23 +13,19 @@ import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IBlockedSlotService;
 import com.mr.sb.beauty_room.services.IConversationStateService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
+import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.StylistSchedule;
-import com.mr.sb.beauty_room.entities.Tenant;
-import com.mr.sb.beauty_room.repository.ClientRepository;
 import com.mr.sb.beauty_room.repository.SalonServiceRepository;
-import com.mr.sb.beauty_room.repository.StylistRepository;
 import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
-import com.mr.sb.beauty_room.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -44,7 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -92,12 +87,9 @@ public class TelegramUpdateHandler {
     private final IConversationStateService conversationStateService;
     private final IAppointmentService appointmentService;
     private final IBlockedSlotService blockedSlotService;
-    private final ClientRepository clientRepository;
-    private final TenantRepository tenantRepository;
+    private final ITelegramAccountService accountService;
     private final SalonServiceRepository serviceRepository;
-    private final StylistRepository stylistRepository;
     private final StylistScheduleRepository stylistScheduleRepository;
-    private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
     public BotApiMethod<?> handle(Update update) {
@@ -122,7 +114,7 @@ public class TelegramUpdateHandler {
 
     private void handleText(TelegramMessage msg, ConversationState state) {
         String text = msg.text() == null ? "" : msg.text().trim();
-        Long tenantId = state.getTenantId() != null ? state.getTenantId() : resolveTenant(msg);
+        Long tenantId = state.getTenantId() != null ? state.getTenantId() : accountService.resolveTenant(msg);
         if (tenantId != null && state.getTenantId() == null) {
             state.setTenantId(tenantId);
         }
@@ -218,7 +210,7 @@ public class TelegramUpdateHandler {
         if (cb == null) {
             return;
         }
-        Long tenantId = state.getTenantId() != null ? state.getTenantId() : resolveTenant(msg);
+        Long tenantId = state.getTenantId() != null ? state.getTenantId() : accountService.resolveTenant(msg);
         if (tenantId != null && state.getTenantId() == null) {
             state.setTenantId(tenantId);
         }
@@ -480,7 +472,7 @@ public class TelegramUpdateHandler {
             return;
         }
         SalonService service = serviceRepository.findByIdAndTenantId(Long.parseLong(serviceId), tenantId).orElse(null);
-        Stylist stylist = stylistRepository.findByIdAndTenantId(Long.parseLong(stylistId), tenantId).orElse(null);
+        Stylist stylist = accountService.findStylistByIdAndTenant(Long.parseLong(stylistId), tenantId).orElse(null);
         data.put("time", time.toString());
 
         String text = "📋 Confirmá tu cita:\n\n"
@@ -507,7 +499,7 @@ public class TelegramUpdateHandler {
             return;
         }
 
-        Client client = ensureClient(msg, tenantId);
+        Client client = accountService.ensureClient(msg, tenantId);
         AppointmentSaveDto dto = AppointmentSaveDto.builder()
                 .startDate(LocalDate.parse(dateStr).atTime(LocalTime.parse(timeStr)))
                 .clientId(client.getId())
@@ -546,7 +538,7 @@ public class TelegramUpdateHandler {
     // ============================ FLUJO: MIS CITAS ============================
 
     private void showMyAppointments(TelegramMessage msg, ConversationState state, Long tenantId) {
-        Optional<Client> clientOpt = clientRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
+        Optional<Client> clientOpt = accountService.findClientByChat(msg, tenantId);
         if (clientOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Todavía no tenés citas. Agendá una tocando «Agendar cita».");
             showMenu(msg, tenantId);
@@ -576,7 +568,7 @@ public class TelegramUpdateHandler {
     // ============================ FLUJO: CANCELAR ============================
 
     private void startCancel(TelegramMessage msg, ConversationState state, Long tenantId) {
-        Optional<Client> clientOpt = clientRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
+        Optional<Client> clientOpt = accountService.findClientByChat(msg, tenantId);
         if (clientOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No tenés citas para cancelar. Agendá una tocando «Agendar cita».");
             showMenu(msg, tenantId);
@@ -633,14 +625,10 @@ public class TelegramUpdateHandler {
 
     // ============================ FLUJO: ESTILISTA ============================
 
-    private Optional<Stylist> ensureStylist(TelegramMessage msg, Long tenantId) {
-        return stylistRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId);
-    }
-
     // ----- AGENDA DEL ESTILISTA -----
 
     private void showStylistAgendaMenu(TelegramMessage msg, ConversationState state, Long tenantId) {
-        if (ensureStylist(msg, tenantId).isEmpty()) {
+        if (accountService.findStylistByChat(msg, tenantId).isEmpty()) {
             channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
             showMenu(msg, tenantId);
             updateState(state, STEP_MENU, null);
@@ -654,7 +642,7 @@ public class TelegramUpdateHandler {
     }
 
     private void showAgenda(TelegramMessage msg, ConversationState state, Long tenantId, LocalDate from, LocalDate to) {
-        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
             showMenu(msg, tenantId);
@@ -687,7 +675,7 @@ public class TelegramUpdateHandler {
     // ----- BLOQUEAR HORARIO -----
 
     private void startBlock(TelegramMessage msg, ConversationState state, Long tenantId) {
-        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
             showMenu(msg, tenantId);
@@ -825,7 +813,7 @@ public class TelegramUpdateHandler {
     // ----- GESTIONAR CITAS (completar / no-show / cancelar) -----
 
     private void showStylistAppointments(TelegramMessage msg, ConversationState state, Long tenantId) {
-        Optional<Stylist> stylistOpt = ensureStylist(msg, tenantId);
+        Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             channel.sendMessage(msg.chatId(), "Este comando es solo para estilistas.");
             showMenu(msg, tenantId);
@@ -944,54 +932,20 @@ public class TelegramUpdateHandler {
 
     // ============================ HELPERS ============================
 
-    private Long resolveTenant(TelegramMessage msg) {
-        String text = msg.text();
-        if (text != null && text.startsWith("/start")) {
-            String payload = text.substring("/start".length()).trim();
-            if (!payload.isEmpty()) {
-                return tenantRepository.findByTenantKey(payload)
-                        .map(tenant -> tenant.getId())
-                        .orElse(null);
-            }
-        }
-        Optional<Client> client = clientRepository.findByTelegramChatId(msg.chatId());
-        if (client.isPresent() && client.get().getTenant() != null) {
-            return client.get().getTenant().getId();
-        }
-        return stylistRepository.findByTelegramChatId(msg.chatId())
-                .map(stylist -> (stylist.getTenant() != null) ? stylist.getTenant().getId() : null)
-                .orElse(null);
-    }
-
-    private Client ensureClient(TelegramMessage msg, Long tenantId) {
-        return clientRepository.findByTelegramChatIdAndTenantId(msg.chatId(), tenantId)
-                .orElseGet(() -> {
-                    Client client = Client.builder()
-                            .email("tg_" + msg.chatId() + "@bot.local")
-                            .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                            .nameClient(displayName(msg))
-                            .phone(null)
-                            .telegramChatId(msg.chatId())
-                            .tenant(Tenant.builder().id(tenantId).build())
-                            .build();
-                    return clientRepository.save(client);
-                });
-    }
-
     private void showMenu(TelegramMessage msg, Long tenantId) {
-        boolean isStylist = tenantId != null && ensureStylist(msg, tenantId).isPresent();
+        boolean isStylist = tenantId != null && accountService.findStylistByChat(msg, tenantId).isPresent();
         if (isStylist) {
-            channel.sendKeyboard(msg.chatId(), "Hola " + safeName(msg) + "! ¿Qué querés hacer?",
+            channel.sendKeyboard(msg.chatId(), "Hola " + accountService.safeName(msg) + "! ¿Qué querés hacer?",
                     List.of("Agendar cita", "Mis citas", "Cancelar cita", "Ver agenda", "Bloquear horario", "Gestionar citas"));
         } else {
-            channel.sendKeyboard(msg.chatId(), "Hola " + safeName(msg) + "! ¿Qué querés hacer?",
+            channel.sendKeyboard(msg.chatId(), "Hola " + accountService.safeName(msg) + "! ¿Qué querés hacer?",
                     List.of("Agendar cita", "Mis citas", "Cancelar cita"));
         }
     }
 
     private void sendGuidance(TelegramMessage msg) {
         channel.sendMessage(msg.chatId(),
-                "Hola " + safeName(msg) + "! Para empezar, abrí el enlace de tu salón (deep link de Telegram, ej: https://t.me/SU_BOT?start=tenantKey).");
+                "Hola " + accountService.safeName(msg) + "! Para empezar, abrí el enlace de tu salón (deep link de Telegram, ej: https://t.me/SU_BOT?start=tenantKey).");
     }
 
     private void updateState(ConversationState state, String step, Map<String, String> data) {
@@ -1035,23 +989,5 @@ public class TelegramUpdateHandler {
         } catch (Exception ignored) {
         }
         return null;
-    }
-
-    private String displayName(TelegramMessage msg) {
-        if (msg.firstName() != null && !msg.firstName().isBlank()) {
-            return msg.firstName();
-        }
-        if (msg.username() != null && !msg.username().isBlank()) {
-            return msg.username();
-        }
-        return "Cliente Telegram";
-    }
-
-    private String safeName(TelegramMessage msg) {
-        String name = displayName(msg);
-        if (msg.username() != null && !msg.username().isBlank()) {
-            return "@" + msg.username();
-        }
-        return name;
     }
 }

@@ -17,11 +17,9 @@ import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
-import com.mr.sb.beauty_room.repository.ClientRepository;
 import com.mr.sb.beauty_room.repository.SalonServiceRepository;
-import com.mr.sb.beauty_room.repository.StylistRepository;
 import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
-import com.mr.sb.beauty_room.repository.TenantRepository;
+import com.mr.sb.beauty_room.services.ITelegramAccountService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +27,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDate;
@@ -63,17 +60,11 @@ class TelegramUpdateHandlerTest {
     @Mock
     private IBlockedSlotService blockedSlotService;
     @Mock
-    private ClientRepository clientRepository;
-    @Mock
-    private TenantRepository tenantRepository;
-    @Mock
     private SalonServiceRepository serviceRepository;
-    @Mock
-    private StylistRepository stylistRepository;
     @Mock
     private StylistScheduleRepository stylistScheduleRepository;
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private ITelegramAccountService accountService;
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -105,7 +96,7 @@ class TelegramUpdateHandlerTest {
     @Test
     void deepLink_withValidTenantKey_shouldResolveTenantAndSendMenu() {
         stubMessage(new TelegramMessage("111111111", "/start salon-maria-001", "juan", "Juan", 123L, null));
-        when(tenantRepository.findByTenantKey("salon-maria-001")).thenReturn(Optional.of(Tenant.builder().id(1L).build()));
+        when(accountService.resolveTenant(any(TelegramMessage.class))).thenReturn(1L);
         ConversationState state = state("111111111", null, null, null);
         stubGetOrCreate(state);
 
@@ -115,15 +106,13 @@ class TelegramUpdateHandlerTest {
                 argThat(buttons -> buttons.contains("Agendar cita") && buttons.contains("Mis citas")));
         verify(conversationStateService).save(argThat(s ->
                 Long.valueOf(1L).equals(s.getTenantId()) && "MENU".equals(s.getCurrentStep())));
-        verify(clientRepository, never()).findByTelegramChatId(anyString());
+        verify(accountService).resolveTenant(any(TelegramMessage.class));
     }
 
     @Test
     void startWithoutPayload_knownChatId_shouldResolveTenantViaClient() {
         stubMessage(new TelegramMessage("222222222", "/start", null, null, null, null));
-        Client client = new Client();
-        client.setTenant(Tenant.builder().id(2L).build());
-        when(clientRepository.findByTelegramChatId("222222222")).thenReturn(Optional.of(client));
+        when(accountService.resolveTenant(any(TelegramMessage.class))).thenReturn(2L);
         ConversationState state = state("222222222", null, null, null);
         stubGetOrCreate(state);
 
@@ -137,7 +126,7 @@ class TelegramUpdateHandlerTest {
     @Test
     void unknownChatId_shouldSendGuidanceMessageInsteadOfKeyboard() {
         stubMessage(new TelegramMessage("999", "/start", null, null, null, null));
-        when(clientRepository.findByTelegramChatId("999")).thenReturn(Optional.empty());
+        when(accountService.resolveTenant(any(TelegramMessage.class))).thenReturn(null);
         ConversationState state = state("999", null, null, null);
         stubGetOrCreate(state);
 
@@ -154,7 +143,7 @@ class TelegramUpdateHandlerTest {
         assertThat(handler.handle(new Update())).isNull();
         verify(channel, never()).sendMessage(anyString(), anyString());
         verify(channel, never()).sendKeyboard(anyString(), anyString(), anyList());
-        verifyNoInteractions(conversationStateService, clientRepository, tenantRepository, appointmentService);
+        verifyNoInteractions(conversationStateService, accountService, appointmentService);
     }
 
     @Test
@@ -235,7 +224,7 @@ class TelegramUpdateHandlerTest {
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
         SalonService haircut = SalonService.builder().id(1L).nameService("Haircut").build();
         when(serviceRepository.findByIdAndTenantId(1L, 1L)).thenReturn(Optional.of(haircut));
-        when(stylistRepository.findByIdAndTenantId(5L, 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByIdAndTenant(5L, 1L)).thenReturn(Optional.of(stylist));
 
         handler.handle(new Update());
 
@@ -252,7 +241,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Client client = Client.builder().id(3L).build();
-        when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(client));
+        when(accountService.ensureClient(any(TelegramMessage.class), eq(1L))).thenReturn(client);
         when(appointmentService.save(any(AppointmentSaveDto.class))).thenReturn(true);
 
         handler.handle(new Update());
@@ -270,17 +259,15 @@ class TelegramUpdateHandlerTest {
         ConversationState state = state("111", "CONFIRM", data, 1L);
         stubGetOrCreate(state);
 
-        when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$hash");
-        when(clientRepository.save(any(Client.class))).thenAnswer(inv -> inv.getArgument(0));
+        Client created = Client.builder().id(3L).nameClient("Juan").telegramChatId("111")
+                .tenant(Tenant.builder().id(1L).build()).build();
+        when(accountService.ensureClient(any(TelegramMessage.class), eq(1L))).thenReturn(created);
         when(appointmentService.save(any(AppointmentSaveDto.class))).thenReturn(true);
 
         handler.handle(new Update());
 
-        verify(clientRepository).save(argThat(c ->
-                c.getTenant().getId().equals(1L)
-                        && "111".equals(c.getTelegramChatId())
-                        && "Juan".equals(c.getNameClient())));
+        verify(accountService).ensureClient(any(TelegramMessage.class), eq(1L));
+        verify(appointmentService).save(argThat(dto -> dto.getClientId() == 3L));
         verify(channel).sendMessage(eq("111"), contains("¡Listo!"));
     }
 
@@ -292,7 +279,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Client client = Client.builder().id(3L).build();
-        when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(client));
+        when(accountService.ensureClient(any(TelegramMessage.class), eq(1L))).thenReturn(client);
         when(appointmentService.save(any(AppointmentSaveDto.class)))
                 .thenThrow(new AppointmentConflictException("ya no disponible"));
         when(appointmentService.getAvailableSlots(5L, 1L, LocalDate.of(2026, 8, 10)))
@@ -311,7 +298,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Client client = Client.builder().id(3L).build();
-        when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(client));
+        when(accountService.findClientByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(client));
         AppointmentResponseDto appt = AppointmentResponseDto.builder()
                 .id(7L)
                 .startDate(LocalDateTime.of(2026, 8, 10, 10, 0))
@@ -333,7 +320,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Client client = Client.builder().id(3L).build();
-        when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(client));
+        when(accountService.findClientByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(client));
         AppointmentResponseDto appt = AppointmentResponseDto.builder()
                 .id(7L)
                 .startDate(LocalDateTime.now().plusDays(2))
@@ -373,9 +360,8 @@ class TelegramUpdateHandlerTest {
 
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe")
                 .tenant(Tenant.builder().id(1L).build()).build();
-        when(clientRepository.findByTelegramChatId("111")).thenReturn(Optional.empty());
-        when(stylistRepository.findByTelegramChatId("111")).thenReturn(Optional.of(stylist));
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.resolveTenant(any(TelegramMessage.class))).thenReturn(1L);
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
 
         handler.handle(new Update());
 
@@ -391,7 +377,7 @@ class TelegramUpdateHandlerTest {
         ConversationState state = state("111", "MENU", null, 1L);
         stubGetOrCreate(state);
 
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.empty());
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.empty());
 
         handler.handle(new Update());
 
@@ -402,7 +388,7 @@ class TelegramUpdateHandlerTest {
     @Test
     void stylistAgenda_shouldShowMenuAndTodayAppointments() {
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
 
         stubMessage(new TelegramMessage("111", "Ver agenda", "juan", "Juan", 123L, null));
         ConversationState state = state("111", "MENU", null, 1L);
@@ -434,7 +420,7 @@ class TelegramUpdateHandlerTest {
     @Test
     void stylistBlockFlow_shouldCreateBlockedSlot() {
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
 
         ConversationState state = state("111", "BLOCK_DATE", "{\"stylistId\":\"5\"}", 1L);
         stubGetOrCreate(state);
@@ -464,7 +450,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
 
         AppointmentResponseDto appt = AppointmentResponseDto.builder()
                 .id(7L)
@@ -491,7 +477,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
         when(appointmentService.completeAppointment(7L)).thenReturn(true);
 
         handler.handle(new Update());
@@ -508,7 +494,7 @@ class TelegramUpdateHandlerTest {
         stubGetOrCreate(state);
 
         Stylist stylist = Stylist.builder().id(5L).nameStylist("John Doe").build();
-        when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(TelegramMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
         when(appointmentService.cancelAppointmentByStylist(9L)).thenReturn(true);
 
         handler.handle(new Update());

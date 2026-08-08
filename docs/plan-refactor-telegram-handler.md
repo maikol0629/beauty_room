@@ -63,7 +63,7 @@
 
 ---
 
-## Fase 2 — Servicio de cuenta (`TelegramAccountService`)
+## Fase 2 (HECHA el 7/8/2026) — Servicio de cuenta (`TelegramAccountService`)
 
 **Problema crítico nº1 / mejora nº9.** Reduce dependencias inyectadas: el handler deja de tocar `ClientRepository`, `TenantRepository`, `StylistRepository` y `PasswordEncoder` para cuentas.
 
