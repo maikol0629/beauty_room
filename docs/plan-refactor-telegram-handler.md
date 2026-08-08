@@ -125,12 +125,13 @@
 
 ---
 
-## Fase 6 — Agrupar constantes de callback
+## Fase 6 (HECHA el 8/8/2026) — Agrupar constantes de callback
 
 **Mejora opcional.** Convertir constantes `STEP_*`/`CB_*`/`PREFIX_*` en `CallbackConstants` (final con constantes públicas estáticas) o enums por dominio (`BookingCallback`, `StylistCallback`, `ReminderCallback`).
 
-- Mover las constantes usadas por la vista (Fase 3) y los flujos (Fase 4). Las de recordatorios ya viven en `ReminderServiceImplement` (`PREFIX_REMINDER_CONFIRM`/`CANCEL`) y no se tocan.
-- Beneficio colateral: la Fase 8 (renombrar `Service`) solo toca un lugar para los prefijos `SERVICE:`/`DATE:`.
+- Consolidado durante las Fases 3-5: todas las `STEP_*`/`CB_*`/`PREFIX_*` viven en `services/CallbackConstants` (clase final, opción A del plan) y son referenciadas por vista, flujos y handler vía `import static`. Sin literales sueltos en el código main.
+- Las de recordatorios siguen en `ReminderServiceImplement` (`PREFIX_REMINDER_CONFIRM`/`CANCEL`), como dicta el plan ("no se tocan"); el handler las referencia como alias.
+- Beneficio colateral logrado: los prefijos `SERVICE:`/`DATE:` se cambian en un solo lugar.
 
 **Verificación:** tests en verde.
 
@@ -180,7 +181,7 @@
 | Alta | 3. TelegramViewService | Bajo-Medio | M (3-4 h) |
 | Media | 4. Orquestadores por flujo | Medio | M-L (1-2 días) |
 | Media | 5. TelegramDateUtils | Bajo | ✅ HECHA (8/8/2026) |
-| Baja | 6. CallbackConstants | Bajo | S (1 h) |
+| Baja | 6. CallbackConstants | Bajo | ✅ HECHA (8/8/2026) |
 | Media | 7. Logs consistentes | Bajo | S |
 | Baja | 8. Renombrar entities.Service→SalonService | ✅ HECHA (7/8/2026) | ver `docs/analisis-nombres-fase8.md` |
 | Baja | 9. JavaDoc y consolidación | Bajo | S |
