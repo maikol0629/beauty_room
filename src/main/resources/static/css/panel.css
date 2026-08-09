@@ -144,6 +144,30 @@ th { background: var(--bg); color: var(--muted); font-weight: 600; }
 .badge-COMPLETED { background: #e6f4ea; color: var(--success); }
 .badge-NO_SHOW { background: #f0e6ff; color: var(--primary); }
 
+.badge-ACTIVE { background: #e6f4ea; color: var(--success); }
+.badge-SUSPENDED { background: #fdecea; color: var(--danger); }
+.badge-TRIAL { background: #fff4d6; color: #b58a00; }
+.badge-BASIC { background: #e3f1ff; color: #1a6fb5; }
+.badge-PREMIUM { background: #f0e6ff; color: var(--primary); }
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.filter-bar label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+
+.filter-bar select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--card);
+}
+
 .form-card {
   max-width: 560px;
   padding: 24px;

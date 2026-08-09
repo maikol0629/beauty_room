@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar salón — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Editar salón</h2>
+  <div class="form-card">
+    <form th:action="@{/panel/super/tenants/{id}(id=${tenantId})}" th:object="${tenant}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+      <label for="name">Nombre del salón</label>
+      <input type="text" id="name" th:field="*{name}" required>
+      <div th:if="${#fields.hasErrors('name')}" class="error" th:errors="*{name}"></div>
+
+      <div class="form-row">
+        <div>
+          <label for="plan">Plan</label>
+          <select id="plan" th:field="*{plan}">
+            <option th:each="p : ${plans}" th:value="${p}" th:text="${p}">PLAN</option>
+          </select>
+          <div th:if="${#fields.hasErrors('plan')}" class="error" th:errors="*{plan}"></div>
+        </div>
+        <div>
+          <label for="status">Estado</label>
+          <select id="status" th:field="*{status}">
+            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}">STATUS</option>
+          </select>
+          <div th:if="${#fields.hasErrors('status')}" class="error" th:errors="*{status}"></div>
+        </div>
+      </div>
+
+      <label for="trialEndsAt">Trial termina</label>
+      <input type="datetime-local" id="trialEndsAt" th:field="*{trialEndsAt}">
+
+      <div style="margin-top:20px; display:flex; gap:12px;">
+        <button type="submit">Guardar cambios</button>
+        <a class="btn btn-outline" th:href="@{/panel/super/tenants/{id}(id=${tenantId})}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

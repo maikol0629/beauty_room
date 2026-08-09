@@ -30,7 +30,8 @@ public class SecurityConfig {
 
     /**
      * Cadena del panel de administración (Fase 6): form login con sesión para /panel/**.
-     * Solo roles STYLIST y ADMIN. CSRF habilitado (los forms de Thymeleaf incluyen el token).
+     * Roles STYLIST y ADMIN para los salones; SUPER_ADMIN solo para /panel/super/**.
+     * CSRF habilitado (los forms de Thymeleaf incluyen el token).
      */
     @Bean
     @Order(1)
@@ -45,7 +46,8 @@ public class SecurityConfig {
                     "/images/**",
                     "/favicon.ico"
                 ).permitAll()
-                .requestMatchers("/panel/**").hasAnyRole("STYLIST", "ADMIN")
+                .requestMatchers("/panel/super/**").hasRole("SUPER_ADMIN")
+                .requestMatchers("/panel/**").hasAnyRole("STYLIST", "ADMIN", "SUPER_ADMIN")
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

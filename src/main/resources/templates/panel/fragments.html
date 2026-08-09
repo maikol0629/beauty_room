@@ -3,16 +3,22 @@
 <body>
 
 <nav th:fragment="navbar" class="navbar">
-  <a class="brand" th:href="@{/panel}">Beauty Room Panel</a>
+  <a class="brand" th:href="${isSuperAdmin} ? @{/panel/super} : @{/panel}">Beauty Room Panel</a>
   <div class="nav-links">
-    <a th:href="@{/panel}">Inicio</a>
-    <a th:href="@{/panel/services}">Servicios</a>
-    <a th:href="@{/panel/schedules}">Horarios</a>
-    <a th:href="@{/panel/blocked}">Bloqueos</a>
-    <a th:href="@{/panel/appointments}">Citas</a>
-    <a th:href="@{/panel/clients}">Clientes</a>
-    <a th:href="@{/panel/stylists}">Estilistas</a>
-    <a th:href="@{/panel/public}">Link público</a>
+    <th:block th:if="${isSuperAdmin}">
+      <a th:href="@{/panel/super}">Dashboard</a>
+      <a th:href="@{/panel/super/tenants}">Salones</a>
+    </th:block>
+    <th:block th:unless="${isSuperAdmin}">
+      <a th:href="@{/panel}">Inicio</a>
+      <a th:href="@{/panel/services}">Servicios</a>
+      <a th:href="@{/panel/schedules}">Horarios</a>
+      <a th:href="@{/panel/blocked}">Bloqueos</a>
+      <a th:href="@{/panel/appointments}">Citas</a>
+      <a th:href="@{/panel/clients}">Clientes</a>
+      <a th:href="@{/panel/stylists}">Estilistas</a>
+      <a th:href="@{/panel/public}">Link público</a>
+    </th:block>
   </div>
   <form class="logout-form" th:action="@{/panel/logout}" method="post">
     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${tenant.name}">Salón — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2 th:text="${tenant.name}">Salón</h2>
+  <p class="muted">
+    <span th:text="${'TenantKey: ' + tenant.tenantKey}">key</span> ·
+    <span class="badge" th:classappend="${'badge-' + tenant.plan}" th:text="${tenant.plan}">TRIAL</span>
+    <span class="badge" th:classappend="${'badge-' + tenant.status}" th:text="${tenant.status}">ACTIVE</span>
+    <span th:text="${' · Creado: ' + #temporals.format(tenant.createdAt, 'dd/MM/yyyy')}">Creado</span>
+    <span th:if="${tenant.trialEndsAt != null}" th:text="${' · Trial termina: ' + #temporals.format(tenant.trialEndsAt, 'dd/MM/yyyy')}">Trial</span>
+  </p>
+
+  <div class="cards">
+    <div class="card"><span class="card-num" th:text="${users.size()}">0</span>Usuarios</div>
+    <div class="card"><span class="card-num" th:text="${appointments.size()}">0</span>Citas</div>
+  </div>
+
+  <div style="display:flex; gap:12px; margin-bottom:24px;">
+    <a class="btn btn-outline" th:href="@{/panel/super/tenants/{id}/edit(id=${tenant.id})}">Editar salón</a>
+    <a class="btn btn-outline" th:href="@{/panel/super/tenants}">Volver</a>
+  </div>
+
+  <h3>Usuarios</h3>
+  <table>
+    <thead>
+    <tr>
+      <th>Email</th>
+      <th>Rol</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="u : ${users}">
+      <td th:text="${u.email}">email@x.com</td>
+      <td th:text="${u.role}">ADMIN</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(users)}">
+      <td colspan="2" class="muted">No hay usuarios.</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <h3>Últimas citas</h3>
+  <table>
+    <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Cliente</th>
+      <th>Servicio</th>
+      <th>Estilista</th>
+      <th>Estado</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${appointments}">
+      <td th:text="${#temporals.format(a.startDate, 'dd/MM/yyyy HH:mm')}">10:00</td>
+      <td th:text="${a.client.nameClient}">Cliente</td>
+      <td th:text="${a.service.nameService}">Servicio</td>
+      <td th:text="${a.stylist.nameStylist}">Estilista</td>
+      <td><span class="badge" th:classappend="${a.status != null ? 'badge-' + a.status : ''}"
+                th:text="${a.status != null ? a.status : 'PENDING'}">PENDING</span></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(appointments)}">
+      <td colspan="5" class="muted">No hay citas.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

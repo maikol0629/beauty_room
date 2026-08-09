@@ -23,6 +23,7 @@
 ✅ Fase 8 (plan de mantenibilidad): normalización de nombres — SalonService, campos camelCase, typos corregidos, paquetes en minúsculas
 ✅ Refactor de TelegramUpdateHandler: de 1.086 líneas monolíticas a dispatcher + flujos por dominio (Fases 1-7, 9 del plan de refactor; ver docs/plan-refactor-telegram-handler.md)
 ✅ WhatsApp (Fase 12): bot multi-canal Meta Cloud API — ChannelRouter @Primary, webhook con firma verificada, recordatorios por template, deep link wa.me, panel con doble QR; fix de primer mensaje de WhatsApp: el router usa el canal de ConversationState (V4) para responder por WhatsApp aunque el cliente aún no exista (114 tests OK)
+✅ Panel Super Admin: rol SUPER_ADMIN + tenant de plataforma (beauty-room-platform), cuenta auto-provisionada (app.superadmin.email/password), /panel/super/** con dashboard (KPIs globales), CRUD de salones (crear con usuario ADMIN del salón, editar, suspender/activar) y detalle con usuarios + últimas citas (128 tests OK)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 

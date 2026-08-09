@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Salones — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Salones</h2>
+  <form class="filter-bar" method="get" th:action="@{/panel/super/tenants}">
+    <div>
+      <label for="plan">Plan</label>
+      <select id="plan" name="plan" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option th:each="p : ${plans}" th:value="${p}" th:text="${p}" th:selected="${selectedPlan == p}">PLAN</option>
+      </select>
+    </div>
+    <div>
+      <label for="status">Estado</label>
+      <select id="status" name="status" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${selectedStatus == s}">STATUS</option>
+      </select>
+    </div>
+    <a class="btn btn-outline" th:href="@{/panel/super/tenants}">Limpiar</a>
+    <a class="btn" th:href="@{/panel/super/tenants/new}">Nuevo salón</a>
+  </form>
+  <table>
+    <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>TenantKey</th>
+      <th>Plan</th>
+      <th>Estado</th>
+      <th>Creado</th>
+      <th>Trial termina</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="t : ${tenants}">
+      <td th:text="${t.name}">Salón</td>
+      <td><code th:text="${t.tenantKey}">key</code></td>
+      <td><span class="badge" th:classappend="${'badge-' + t.plan}" th:text="${t.plan}">TRIAL</span></td>
+      <td><span class="badge" th:classappend="${'badge-' + t.status}" th:text="${t.status}">ACTIVE</span></td>
+      <td th:text="${#temporals.format(t.createdAt, 'dd/MM/yyyy')}">01/01/2026</td>
+      <td th:text="${t.trialEndsAt != null ? #temporals.format(t.trialEndsAt, 'dd/MM/yyyy') : '—'}">—</td>
+      <td style="display:flex; gap:8px;">
+        <a class="btn btn-outline btn-sm" th:href="@{/panel/super/tenants/{id}(id=${t.id})}">Ver</a>
+        <a class="btn btn-outline btn-sm" th:href="@{/panel/super/tenants/{id}/edit(id=${t.id})}">Editar</a>
+        <form th:action="@{/panel/super/tenants/{id}/status(id=${t.id})}" method="post" style="margin:0;">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <input type="hidden" name="status" th:value="${t.status == 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'}"/>
+          <button type="submit" class="btn btn-sm"
+                  th:classappend="${t.status == 'ACTIVE'} ? 'btn-danger'"
+                  th:text="${t.status == 'ACTIVE'} ? 'Suspender' : 'Activar'">Suspender</button>
+        </form>
+      </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(tenants)}">
+      <td colspan="7" class="muted">No hay salones.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

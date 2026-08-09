@@ -1,6 +1,7 @@
 package com.mr.sb.beauty_room.controllers.panel;
 
 import com.mr.sb.beauty_room.security.TenantInterceptor;
+import com.mr.sb.beauty_room.entities.Role;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.entities.User;
 import com.mr.sb.beauty_room.repository.UserRepository;
@@ -29,6 +30,12 @@ public class PanelTenantHelper {
             throw new IllegalStateException("No se pudo resolver el tenant del usuario logueado en el panel");
         }
         return tenant;
+    }
+
+    public boolean isSuperAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getPrincipal() instanceof User user
+                && user.getRole() == Role.SUPER_ADMIN;
     }
 
     private User currentUser() {

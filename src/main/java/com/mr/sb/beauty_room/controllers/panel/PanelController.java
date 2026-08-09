@@ -38,6 +38,9 @@ public class PanelController {
 
     @GetMapping({"", "/"})
     public String home(Model model) {
+        if (tenantHelper.isSuperAdmin()) {
+            return "redirect:/panel/super";
+        }
         int servicesCount = tenantHelper.withTenant(() -> serviceService.findAll().size());
         int stylistsCount = tenantHelper.withTenant(() -> stylistService.findAll().size());
         int clientsCount = tenantHelper.withTenant(() -> clientService.findAll().size());

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard — Beauty Room Panel</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body>
+<nav th:replace="~{panel/fragments :: navbar}"></nav>
+<main class="container">
+  <div th:replace="~{panel/fragments :: flash}"></div>
+  <h2>Dashboard Super Admin</h2>
+  <div class="cards">
+    <div class="card"><span class="card-num" th:text="${totalTenants}">0</span>Salones</div>
+    <div class="card"><span class="card-num" th:text="${activeTenants}">0</span>Activos</div>
+    <div class="card"><span class="card-num" th:text="${suspendedTenants}">0</span>Suspendidos</div>
+    <div class="card"><span class="card-num" th:text="${trialTenants}">0</span>En trial</div>
+    <div class="card"><span class="card-num" th:text="${totalClients}">0</span>Clientes</div>
+    <div class="card"><span class="card-num" th:text="${totalStylists}">0</span>Estilistas</div>
+    <div class="card"><span class="card-num" th:text="${totalAppointments}">0</span>Citas</div>
+  </div>
+  <div style="display:flex; gap:12px;">
+    <a class="btn" th:href="@{/panel/super/tenants}">Ver salones</a>
+    <a class="btn btn-outline" th:href="@{/panel/super/tenants/new}">Nuevo salón</a>
+  </div>
+</main>
+</body>
+</html>
