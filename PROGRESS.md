@@ -1,6 +1,6 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
-**Actualizado:** 7 de agosto de 2026  
+**Actualizado:** 8 de agosto de 2026  
 **Próxima revisión:** Después de Fase 7
 
 ---
@@ -22,6 +22,7 @@
 ✅ Panel de administración Thymeleaf: login, CRUD servicios/horarios/bloqueos, citas, clientes, link público + QR (Fase 6 completada)
 ✅ Fase 8 (plan de mantenibilidad): normalización de nombres — SalonService, campos camelCase, typos corregidos, paquetes en minúsculas
 ✅ Refactor de TelegramUpdateHandler: de 1.086 líneas monolíticas a dispatcher + flujos por dominio (Fases 1-7, 9 del plan de refactor; ver docs/plan-refactor-telegram-handler.md)
+✅ WhatsApp (Fase 12): bot multi-canal Meta Cloud API — ChannelRouter @Primary, webhook con firma verificada, recordatorios por template, deep link wa.me, panel con doble QR; fix de primer mensaje de WhatsApp: el router usa el canal de ConversationState (V4) para responder por WhatsApp aunque el cliente aún no exista (114 tests OK)
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -314,9 +315,12 @@ Estado: ❌ NO INICIADA
 Descripción: Infrastructure, WhatsApp, growth
 Timeline: 4-6 semanas (después de Fase 10)
 Prioridad: 🟢 BAJA (después de tracción)
-Estado: ❌ NO INICIADA
+Estado: ✅ FASE 12 (WhatsApp) COMPLETADA el 8/8/2026 — bot multi-canal sobre IMessagingChannel
+        (ChannelRouter @Primary, webhook /api/whatsapp/webhook con firma verificada,
+        recordatorios por template, deep link wa.me, panel con doble QR). Ver
+        docs/plan-integracion-whatsapp.md. 104 tests OK.
 
-⚠️  NO hacer antes de tener estilistas reales
+⚠️  Fases 11 y 13 (infra y growth) pendientes
 ```
 
 ---

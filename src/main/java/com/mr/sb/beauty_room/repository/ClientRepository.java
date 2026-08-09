@@ -23,4 +23,10 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     @Query("SELECT c FROM Client c WHERE c.telegramChatId = :telegramChatId AND c.tenant.id = :tenantId")
     Optional<Client> findByTelegramChatIdAndTenantId(@Param("telegramChatId") String telegramChatId, @Param("tenantId") Long tenantId);
+
+    @Query("SELECT c FROM Client c WHERE c.whatsappChatId = :whatsappChatId")
+    Optional<Client> findByWhatsappChatId(@Param("whatsappChatId") String whatsappChatId);
+
+    @Query("SELECT c FROM Client c WHERE c.whatsappChatId = :whatsappChatId AND c.tenant.id = :tenantId")
+    Optional<Client> findByWhatsappChatIdAndTenantId(@Param("whatsappChatId") String whatsappChatId, @Param("tenantId") Long tenantId);
 }

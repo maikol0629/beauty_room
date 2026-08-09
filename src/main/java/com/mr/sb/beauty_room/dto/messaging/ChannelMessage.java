@@ -1,6 +1,7 @@
-package com.mr.sb.beauty_room.dto.telegram;
+package com.mr.sb.beauty_room.dto.messaging;
 
-public record TelegramMessage(
+public record ChannelMessage(
+        Channel channel,
         String chatId,
         String text,
         String username,

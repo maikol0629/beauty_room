@@ -6,6 +6,7 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.mr.sb.beauty_room.config.TelegramBotProperties;
+import com.mr.sb.beauty_room.config.WhatsAppProperties;
 import com.mr.sb.beauty_room.services.IQrCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class QrCodeServiceImplement implements IQrCodeService {
 
     private final TelegramBotProperties telegramBotProperties;
+    private final WhatsAppProperties whatsappProperties;
 
     @Override
     public byte[] generatePng(String content, int width, int height) {
@@ -39,5 +41,14 @@ public class QrCodeServiceImplement implements IQrCodeService {
             return null;
         }
         return "https://t.me/" + username + "?start=" + tenantKey;
+    }
+
+    @Override
+    public String buildWhatsappAgendaUrl(String tenantKey) {
+        String phone = whatsappProperties.getPhoneNumber();
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        return "https://wa.me/" + phone + "?text=" + tenantKey;
     }
 }

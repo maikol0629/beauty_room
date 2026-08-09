@@ -1,6 +1,7 @@
 package com.mr.sb.beauty_room.services.implement;
 
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.Channel;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TelegramAccountServiceImplementTest {
+class ChatAccountServiceImplementTest {
 
     @Mock
     private ClientRepository clientRepository;
@@ -36,16 +37,34 @@ class TelegramAccountServiceImplementTest {
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
-    private TelegramAccountServiceImplement service;
+    private ChatAccountServiceImplement service;
+
+    private ChannelMessage telegramMessage(String chatId, String text, String username, String firstName) {
+        return new ChannelMessage(Channel.TELEGRAM, chatId, text, username, firstName, 123L, null);
+    }
+
+    private ChannelMessage whatsappMessage(String chatId, String text, String profileName) {
+        return new ChannelMessage(Channel.WHATSAPP, chatId, text, null, profileName, null, null);
+    }
 
     @Test
     void resolveTenant_withDeepLinkPayload_shouldResolveFromTenantKey() {
         when(tenantRepository.findByTenantKey("salon-maria-001"))
                 .thenReturn(Optional.of(Tenant.builder().id(1L).build()));
-        TelegramMessage msg = new TelegramMessage("111", "/start salon-maria-001", "juan", "Juan", 123L, null);
+        ChannelMessage msg = telegramMessage("111", "/start salon-maria-001", "juan", "Juan");
 
         assertThat(service.resolveTenant(msg)).isEqualTo(1L);
         verify(tenantRepository).findByTenantKey("salon-maria-001");
+    }
+
+    @Test
+    void resolveTenant_withWhatsappPlainTextKey_shouldResolveFromTenantKey() {
+        when(tenantRepository.findByTenantKey("estilos-ana-001"))
+                .thenReturn(Optional.of(Tenant.builder().id(2L).build()));
+        ChannelMessage msg = whatsappMessage("5491101234567", "estilos-ana-001", "Ana");
+
+        assertThat(service.resolveTenant(msg)).isEqualTo(2L);
+        verify(tenantRepository).findByTenantKey("estilos-ana-001");
     }
 
     @Test
@@ -53,10 +72,22 @@ class TelegramAccountServiceImplementTest {
         Client client = new Client();
         client.setTenant(Tenant.builder().id(2L).build());
         when(clientRepository.findByTelegramChatId("222")).thenReturn(Optional.of(client));
-        TelegramMessage msg = new TelegramMessage("222", "/start", null, null, null, null);
+        ChannelMessage msg = telegramMessage("222", "/start", null, null);
 
         assertThat(service.resolveTenant(msg)).isEqualTo(2L);
         verify(clientRepository).findByTelegramChatId("222");
+    }
+
+    @Test
+    void resolveTenant_withoutPayload_knownWhatsappClient_shouldResolveFromClientTenant() {
+        Client client = new Client();
+        client.setTenant(Tenant.builder().id(4L).build());
+        when(clientRepository.findByTelegramChatId("5491101234567")).thenReturn(Optional.empty());
+        when(clientRepository.findByWhatsappChatId("5491101234567")).thenReturn(Optional.of(client));
+        ChannelMessage msg = whatsappMessage("5491101234567", "Hola", "Ana");
+
+        assertThat(service.resolveTenant(msg)).isEqualTo(4L);
+        verify(clientRepository).findByWhatsappChatId("5491101234567");
     }
 
     @Test
@@ -65,7 +96,7 @@ class TelegramAccountServiceImplementTest {
         stylist.setTenant(Tenant.builder().id(3L).build());
         when(clientRepository.findByTelegramChatId("333")).thenReturn(Optional.empty());
         when(stylistRepository.findByTelegramChatId("333")).thenReturn(Optional.of(stylist));
-        TelegramMessage msg = new TelegramMessage("333", "/start", null, null, null, null);
+        ChannelMessage msg = telegramMessage("333", "/start", null, null);
 
         assertThat(service.resolveTenant(msg)).isEqualTo(3L);
     }
@@ -74,7 +105,7 @@ class TelegramAccountServiceImplementTest {
     void resolveTenant_unknownChat_shouldReturnNull() {
         when(clientRepository.findByTelegramChatId("999")).thenReturn(Optional.empty());
         when(stylistRepository.findByTelegramChatId("999")).thenReturn(Optional.empty());
-        TelegramMessage msg = new TelegramMessage("999", "/start", null, null, null, null);
+        ChannelMessage msg = telegramMessage("999", "/start", null, null);
 
         assertThat(service.resolveTenant(msg)).isNull();
     }
@@ -83,16 +114,26 @@ class TelegramAccountServiceImplementTest {
     void findClientByChat_shouldDelegateToRepository() {
         Client client = Client.builder().id(3L).build();
         when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(client));
-        TelegramMessage msg = new TelegramMessage("111", null, null, null, null, null);
+        ChannelMessage msg = telegramMessage("111", null, null, null);
 
         assertThat(service.findClientByChat(msg, 1L)).contains(client);
+    }
+
+    @Test
+    void findClientByChat_withWhatsapp_shouldDelegateToWhatsappRepository() {
+        Client client = Client.builder().id(3L).build();
+        when(clientRepository.findByWhatsappChatIdAndTenantId("5491101234567", 1L)).thenReturn(Optional.of(client));
+        ChannelMessage msg = whatsappMessage("5491101234567", null, "Ana");
+
+        assertThat(service.findClientByChat(msg, 1L)).contains(client);
+        verify(clientRepository).findByWhatsappChatIdAndTenantId("5491101234567", 1L);
     }
 
     @Test
     void ensureClient_whenExists_shouldReturnExistingWithoutSaving() {
         Client existing = Client.builder().id(3L).build();
         when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(existing));
-        TelegramMessage msg = new TelegramMessage("111", null, "juan", "Juan", 123L, null);
+        ChannelMessage msg = telegramMessage("111", null, "juan", "Juan");
 
         assertThat(service.ensureClient(msg, 1L)).isSameAs(existing);
         verify(clientRepository).findByTelegramChatIdAndTenantId("111", 1L);
@@ -103,7 +144,7 @@ class TelegramAccountServiceImplementTest {
         when(clientRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$hash");
         when(clientRepository.save(any(Client.class))).thenAnswer(inv -> inv.getArgument(0));
-        TelegramMessage msg = new TelegramMessage("111", null, "juan", "Juan", 123L, null);
+        ChannelMessage msg = telegramMessage("111", null, "juan", "Juan");
 
         Client client = service.ensureClient(msg, 1L);
 
@@ -116,12 +157,39 @@ class TelegramAccountServiceImplementTest {
     }
 
     @Test
+    void ensureClient_whenNewWhatsapp_shouldCreateWithWhatsappChatId() {
+        when(clientRepository.findByWhatsappChatIdAndTenantId("5491101234567", 1L)).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$hash");
+        when(clientRepository.save(any(Client.class))).thenAnswer(inv -> inv.getArgument(0));
+        ChannelMessage msg = whatsappMessage("5491101234567", null, "Ana");
+
+        Client client = service.ensureClient(msg, 1L);
+
+        assertThat(client.getNameClient()).isEqualTo("Ana");
+        assertThat(client.getWhatsappChatId()).isEqualTo("5491101234567");
+        assertThat(client.getTelegramChatId()).isNull();
+        assertThat(client.getEmail()).isEqualTo("wa_5491101234567@bot.local");
+        assertThat(client.getTenant().getId()).isEqualTo(1L);
+        verify(clientRepository).save(any(Client.class));
+    }
+
+    @Test
     void findStylistByChat_shouldDelegateToRepository() {
         Stylist stylist = Stylist.builder().id(5L).build();
         when(stylistRepository.findByTelegramChatIdAndTenantId("111", 1L)).thenReturn(Optional.of(stylist));
-        TelegramMessage msg = new TelegramMessage("111", null, null, null, null, null);
+        ChannelMessage msg = telegramMessage("111", null, null, null);
 
         assertThat(service.findStylistByChat(msg, 1L)).contains(stylist);
+    }
+
+    @Test
+    void findStylistByChat_withWhatsapp_shouldDelegateToWhatsappRepository() {
+        Stylist stylist = Stylist.builder().id(5L).build();
+        when(stylistRepository.findByWhatsappChatIdAndTenantId("5491101234567", 1L)).thenReturn(Optional.of(stylist));
+        ChannelMessage msg = whatsappMessage("5491101234567", null, "Ana");
+
+        assertThat(service.findStylistByChat(msg, 1L)).contains(stylist);
+        verify(stylistRepository).findByWhatsappChatIdAndTenantId("5491101234567", 1L);
     }
 
     @Test
@@ -134,22 +202,29 @@ class TelegramAccountServiceImplementTest {
 
     @Test
     void safeName_withUsername_shouldReturnUsernameWithAt() {
-        TelegramMessage msg = new TelegramMessage("111", null, "juan", "Juan", 123L, null);
+        ChannelMessage msg = telegramMessage("111", null, "juan", "Juan");
 
         assertThat(service.safeName(msg)).isEqualTo("@juan");
     }
 
     @Test
     void safeName_withoutUsername_shouldReturnFirstName() {
-        TelegramMessage msg = new TelegramMessage("111", null, null, "Juan", 123L, null);
+        ChannelMessage msg = telegramMessage("111", null, null, "Juan");
 
         assertThat(service.safeName(msg)).isEqualTo("Juan");
     }
 
     @Test
     void displayName_withoutNames_shouldReturnFallback() {
-        TelegramMessage msg = new TelegramMessage("111", null, null, null, null, null);
+        ChannelMessage msg = telegramMessage("111", null, null, null);
 
         assertThat(service.displayName(msg)).isEqualTo("Cliente Telegram");
+    }
+
+    @Test
+    void displayName_whatsapp_withoutNames_shouldReturnWhatsappFallback() {
+        ChannelMessage msg = whatsappMessage("5491101234567", null, null);
+
+        assertThat(service.displayName(msg)).isEqualTo("Cliente WhatsApp");
     }
 }

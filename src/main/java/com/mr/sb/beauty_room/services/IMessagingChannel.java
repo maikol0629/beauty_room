@@ -1,12 +1,14 @@
 package com.mr.sb.beauty_room.services;
 
-import com.mr.sb.beauty_room.dto.telegram.Button;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import com.mr.sb.beauty_room.dto.messaging.Button;
+import com.mr.sb.beauty_room.dto.messaging.TemplateMessage;
 
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Canal de mensajería del bot. Los métodos de envío son agnósticos del canal
+ * (Telegram, WhatsApp...); el parseo de updates vive en parsers por canal.
+ */
 public interface IMessagingChannel {
 
     void sendMessage(String chatId, String text);
@@ -15,5 +17,10 @@ public interface IMessagingChannel {
 
     void sendInlineKeyboard(String chatId, String text, List<Button> buttons);
 
-    Optional<TelegramMessage> parseUpdate(Update update);
+    /**
+     * Envía un mensaje proactivo (recordatorios, resúmenes, notificaciones).
+     * Cada canal decide cómo emitirlo: Telegram usa el texto libre (fallback),
+     * WhatsApp usa templates pre-aprobados de Meta con fallback a texto libre.
+     */
+    void sendTemplate(String chatId, TemplateMessage template);
 }

@@ -82,6 +82,7 @@ public class SecurityConfig {
                     "/api/appointment/availability",
                     "/api/appointment/slots",
                     "/api/telegram/webhook",
+                    "/api/whatsapp/webhook",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"

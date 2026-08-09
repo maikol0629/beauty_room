@@ -2,8 +2,8 @@ package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.dto.appointments.AppointmentResponseDto;
 import com.mr.sb.beauty_room.dto.blockedslot.BlockedSlotRequestDto;
-import com.mr.sb.beauty_room.dto.telegram.Button;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.Button;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.entities.Stylist;
@@ -11,9 +11,9 @@ import com.mr.sb.beauty_room.security.TenantScope;
 import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IBlockedSlotService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
-import com.mr.sb.beauty_room.services.ITelegramAccountService;
-import com.mr.sb.beauty_room.services.ITelegramViewService;
-import com.mr.sb.beauty_room.util.TelegramDateUtils;
+import com.mr.sb.beauty_room.services.IChatAccountService;
+import com.mr.sb.beauty_room.services.IChatViewService;
+import com.mr.sb.beauty_room.util.ChatDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,20 +48,20 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_STYLIST_APPT
  */
 @Service
 @RequiredArgsConstructor
-public class TelegramStylistFlow {
+public class StylistFlow {
 
-    private static final Logger log = LoggerFactory.getLogger(TelegramStylistFlow.class);
+    private static final Logger log = LoggerFactory.getLogger(StylistFlow.class);
 
     private final IMessagingChannel channel;
-    private final ITelegramViewService view;
+    private final IChatViewService view;
     private final IAppointmentService appointmentService;
     private final IBlockedSlotService blockedSlotService;
-    private final ITelegramAccountService accountService;
+    private final IChatAccountService accountService;
     private final ConversationStateHelper stateHelper;
 
     // ----- AGENDA DEL ESTILISTA -----
 
-    public void showStylistAgendaMenu(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void showStylistAgendaMenu(ChannelMessage msg, ConversationState state, Long tenantId) {
         if (accountService.findStylistByChat(msg, tenantId).isEmpty()) {
             endWithMenu(msg, state, tenantId, "Este comando es solo para estilistas.");
             return;
@@ -73,7 +73,7 @@ public class TelegramStylistFlow {
         stateHelper.updateState(state, STEP_MENU, null);
     }
 
-    public void showAgenda(TelegramMessage msg, ConversationState state, Long tenantId, LocalDate from, LocalDate to) {
+    public void showAgenda(ChannelMessage msg, ConversationState state, Long tenantId, LocalDate from, LocalDate to) {
         Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             endWithMenu(msg, state, tenantId, "Este comando es solo para estilistas.");
@@ -89,7 +89,7 @@ public class TelegramStylistFlow {
 
     // ----- BLOQUEAR HORARIO -----
 
-    public void startBlock(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void startBlock(ChannelMessage msg, ConversationState state, Long tenantId) {
         Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             endWithMenu(msg, state, tenantId, "Este comando es solo para estilistas.");
@@ -101,7 +101,7 @@ public class TelegramStylistFlow {
         LocalDate today = LocalDate.now();
         for (int i = 0; i < 7; i++) {
             LocalDate d = today.plusDays(i);
-            buttons.add(new Button(TelegramDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
+            buttons.add(new Button(ChatDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
                     PREFIX_BLOCK_DATE + d));
         }
         buttons.add(new Button("◀ Volver", CB_MENU));
@@ -109,7 +109,7 @@ public class TelegramStylistFlow {
         stateHelper.updateState(state, STEP_BLOCK_DATE, data);
     }
 
-    public void selectBlockDate(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalDate date) {
+    public void selectBlockDate(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalDate date) {
         if (date.isBefore(LocalDate.now())) {
             channel.sendMessage(msg.chatId(), "Esa fecha ya pasó. Elegí otra:");
             startBlock(msg, state, tenantId);
@@ -120,7 +120,7 @@ public class TelegramStylistFlow {
         stateHelper.updateState(state, STEP_BLOCK_START, data);
     }
 
-    public void selectBlockStart(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime start) {
+    public void selectBlockStart(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime start) {
         LocalDate date = LocalDate.parse(data.get("date"));
         if (date.atTime(start).isBefore(LocalDateTime.now())) {
             channel.sendMessage(msg.chatId(), "Esa hora ya pasó. Elegí otra hora de inicio:");
@@ -132,7 +132,7 @@ public class TelegramStylistFlow {
         stateHelper.updateState(state, STEP_BLOCK_END, data);
     }
 
-    public void selectBlockEnd(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime end) {
+    public void selectBlockEnd(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime end) {
         Long stylistId = Long.parseLong(data.get("stylistId"));
         LocalDate date = LocalDate.parse(data.get("date"));
         LocalTime start = LocalTime.parse(data.get("start"));
@@ -151,7 +151,7 @@ public class TelegramStylistFlow {
             TenantScope.runWithTenant(tenantId, () -> {
                 blockedSlotService.create(dto);
                 channel.sendMessage(msg.chatId(),
-                        "✅ Horario bloqueado: " + date + " de " + start.format(TelegramDateUtils.TIME_FMT) + " a " + end.format(TelegramDateUtils.TIME_FMT) + ".");
+                        "✅ Horario bloqueado: " + date + " de " + start.format(ChatDateUtils.TIME_FMT) + " a " + end.format(ChatDateUtils.TIME_FMT) + ".");
             });
         } catch (Exception e) {
             log.error("Error bloqueando horario para chat_id={}: {}", msg.chatId(), e.getMessage(), e);
@@ -163,7 +163,7 @@ public class TelegramStylistFlow {
 
     // ----- GESTIONAR CITAS (completar / no-show / cancelar) -----
 
-    public void showStylistAppointments(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void showStylistAppointments(ChannelMessage msg, ConversationState state, Long tenantId) {
         Optional<Stylist> stylistOpt = accountService.findStylistByChat(msg, tenantId);
         if (stylistOpt.isEmpty()) {
             endWithMenu(msg, state, tenantId, "Este comando es solo para estilistas.");
@@ -184,7 +184,7 @@ public class TelegramStylistFlow {
         stateHelper.updateState(state, STEP_STYLIST_APPT, null);
     }
 
-    public void manageAppointmentByCallback(TelegramMessage msg, ConversationState state, Long tenantId, String prefix, String appointmentIdText) {
+    public void manageAppointmentByCallback(ChannelMessage msg, ConversationState state, Long tenantId, String prefix, String appointmentIdText) {
         Long appointmentId;
         try {
             appointmentId = Long.parseLong(appointmentIdText);
@@ -211,7 +211,7 @@ public class TelegramStylistFlow {
                 : "No se pudo actualizar esa cita (¿ya no está activa?).");
     }
 
-    private void endWithMenu(TelegramMessage msg, ConversationState state, Long tenantId, String text) {
+    private void endWithMenu(ChannelMessage msg, ConversationState state, Long tenantId, String text) {
         view.sendEndWithMenu(msg, tenantId, text);
         stateHelper.updateState(state, STEP_MENU, null);
     }

@@ -21,6 +21,8 @@ public class Client extends User {
 
     private String telegramChatId;
 
+    private String whatsappChatId;
+
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default

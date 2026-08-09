@@ -1,7 +1,7 @@
 package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.dto.appointments.AppointmentSaveDto;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.ConversationState;
@@ -11,9 +11,9 @@ import com.mr.sb.beauty_room.repository.SalonServiceRepository;
 import com.mr.sb.beauty_room.security.TenantScope;
 import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
-import com.mr.sb.beauty_room.services.ITelegramAccountService;
-import com.mr.sb.beauty_room.services.ITelegramViewService;
-import com.mr.sb.beauty_room.util.TelegramDateUtils;
+import com.mr.sb.beauty_room.services.IChatAccountService;
+import com.mr.sb.beauty_room.services.IChatViewService;
+import com.mr.sb.beauty_room.util.ChatDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,18 +38,18 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
  */
 @Service
 @RequiredArgsConstructor
-public class TelegramBookingFlow {
+public class BookingFlow {
 
-    private static final Logger log = LoggerFactory.getLogger(TelegramBookingFlow.class);
+    private static final Logger log = LoggerFactory.getLogger(BookingFlow.class);
 
     private final IMessagingChannel channel;
-    private final ITelegramViewService view;
+    private final IChatViewService view;
     private final IAppointmentService appointmentService;
-    private final ITelegramAccountService accountService;
+    private final IChatAccountService accountService;
     private final SalonServiceRepository serviceRepository;
     private final ConversationStateHelper stateHelper;
 
-    public void startSchedule(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void startSchedule(ChannelMessage msg, ConversationState state, Long tenantId) {
         List<SalonService> services = serviceRepository.findByTenantId(tenantId);
         if (services.isEmpty()) {
             endWithMenu(msg, state, tenantId, "Todavía no hay servicios cargados en tu salón. Probá más tarde.");
@@ -59,7 +59,7 @@ public class TelegramBookingFlow {
         stateHelper.updateState(state, STEP_CHOOSE_SERVICE, new HashMap<>());
     }
 
-    public void selectService(TelegramMessage msg, ConversationState state, Long tenantId, String serviceIdText) {
+    public void selectService(ChannelMessage msg, ConversationState state, Long tenantId, String serviceIdText) {
         Long serviceId;
         try {
             serviceId = Long.parseLong(serviceIdText);
@@ -81,16 +81,16 @@ public class TelegramBookingFlow {
         stateHelper.updateState(state, STEP_CHOOSE_DATE, data);
     }
 
-    public void showDateOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showDateOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         view.showDateOptions(msg, data, tenantId);
     }
 
-    public void showTimeOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showTimeOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         view.showTimeOptions(msg, data, tenantId);
     }
 
-    public void trySelectDateByText(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
-        LocalDate date = TelegramDateUtils.parseDate(text);
+    public void trySelectDateByText(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
+        LocalDate date = ChatDateUtils.parseDate(text);
         if (date == null) {
             channel.sendMessage(msg.chatId(), "No entendí la fecha. Usá el formato YYYY-MM-DD (ej: 2026-08-10) o elegí una de las fechas de abajo.");
             view.showDateOptions(msg, data, tenantId);
@@ -99,10 +99,10 @@ public class TelegramBookingFlow {
         selectDate(msg, state, data, tenantId, date);
     }
 
-    public void trySelectTimeByText(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
+    public void trySelectTimeByText(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String text) {
         LocalTime time;
         try {
-            time = TelegramDateUtils.parseTime(text);
+            time = ChatDateUtils.parseTime(text);
         } catch (DateTimeParseException e) {
             channel.sendMessage(msg.chatId(), "No entendí la hora. Usá el formato HH:mm (ej: 10:30) o elegí una de las horas de abajo.");
             view.showTimeOptions(msg, data, tenantId);
@@ -111,7 +111,7 @@ public class TelegramBookingFlow {
         selectTime(msg, state, data, tenantId, time);
     }
 
-    public void selectDate(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalDate date) {
+    public void selectDate(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalDate date) {
         if (date.isBefore(LocalDate.now())) {
             channel.sendMessage(msg.chatId(), "Esa fecha ya pasó. Elegí otra:");
             view.showDateOptions(msg, data, tenantId);
@@ -130,12 +130,12 @@ public class TelegramBookingFlow {
             return;
         }
         data.put("date", date.toString());
-        channel.sendMessage(msg.chatId(), "Horarios disponibles el " + TelegramDateUtils.dayName(date, TextStyle.FULL) + " " + date + ":");
+        channel.sendMessage(msg.chatId(), "Horarios disponibles el " + ChatDateUtils.dayName(date, TextStyle.FULL) + " " + date + ":");
         view.showTimeOptions(msg, data, tenantId);
         stateHelper.updateState(state, STEP_CHOOSE_TIME, data);
     }
 
-    public void selectTime(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime time) {
+    public void selectTime(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, LocalTime time) {
         String serviceId = data.get("serviceId");
         String stylistId = data.get("stylistId");
         String dateStr = data.get("date");
@@ -151,7 +151,7 @@ public class TelegramBookingFlow {
         stateHelper.updateState(state, STEP_CONFIRM, data);
     }
 
-    public void confirmAppointment(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId) {
+    public void confirmAppointment(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId) {
         String serviceId = data.get("serviceId");
         String stylistId = data.get("stylistId");
         String dateStr = data.get("date");
@@ -175,7 +175,7 @@ public class TelegramBookingFlow {
                 if (ok) {
                     channel.sendMessage(msg.chatId(),
                             "✅ ¡Listo! Tu cita quedó agendada:\n\n"
-                                    + "• Fecha: " + TelegramDateUtils.formatDateForUser(LocalDate.parse(dateStr)) + "\n"
+                                    + "• Fecha: " + ChatDateUtils.formatDateForUser(LocalDate.parse(dateStr)) + "\n"
                                     + "• Hora: " + timeStr + "\n\n"
                                     + "Te esperamos.");
                     stateHelper.updateState(state, STEP_MENU, null);
@@ -197,7 +197,7 @@ public class TelegramBookingFlow {
         }
     }
 
-    private void endWithMenu(TelegramMessage msg, ConversationState state, Long tenantId, String text) {
+    private void endWithMenu(ChannelMessage msg, ConversationState state, Long tenantId, String text) {
         view.sendEndWithMenu(msg, tenantId, text);
         stateHelper.updateState(state, STEP_MENU, null);
     }

@@ -5,4 +5,6 @@ public interface IQrCodeService {
     byte[] generatePng(String content, int width, int height);
 
     String buildPublicAgendaUrl(String tenantKey);
+
+    String buildWhatsappAgendaUrl(String tenantKey);
 }

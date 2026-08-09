@@ -280,12 +280,13 @@ public class AppointmentServiceImplement implements IAppointmentService {
     }
 
     private void notifyStylistOfNewAppointment(Stylist stylist, Client client, SalonService service, Appointment appointment) {
-        if (stylist == null || stylist.getTelegramChatId() == null || stylist.getTelegramChatId().isBlank()) {
+        String chatId = chatTarget(stylist.getWhatsappChatId(), stylist.getTelegramChatId());
+        if (chatId == null) {
             return;
         }
         String clientName = (client != null && client.getNameClient() != null) ? client.getNameClient() : "Cliente";
         String serviceName = (service != null) ? service.getNameService() : "Servicio";
-        messagingChannel.sendMessage(stylist.getTelegramChatId(),
+        messagingChannel.sendMessage(chatId,
                 "📅 ¡Nueva cita agendada!\n\n"
                         + "• Cliente: " + clientName + "\n"
                         + "• Servicio: " + serviceName + "\n"
@@ -295,13 +296,31 @@ public class AppointmentServiceImplement implements IAppointmentService {
 
     private void notifyClientOfCancellation(Appointment appointment) {
         Client client = appointment.getClient();
-        if (client == null || client.getTelegramChatId() == null || client.getTelegramChatId().isBlank()) {
+        if (client == null) {
+            return;
+        }
+        String chatId = chatTarget(client.getWhatsappChatId(), client.getTelegramChatId());
+        if (chatId == null) {
             return;
         }
         String serviceName = (appointment.getService() != null) ? appointment.getService().getNameService() : "cita";
         String date = appointment.getStartDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        messagingChannel.sendMessage(client.getTelegramChatId(),
+        messagingChannel.sendMessage(chatId,
                 "❌ Tu cita del " + date + " (" + serviceName + ") fue cancelada por el salón.");
+    }
+
+    /**
+     * Elige el canal de contacto preferido (WhatsApp primero, Telegram como fallback).
+     */
+    private String chatTarget(String whatsappChatId, String telegramChatId) {
+        if (!isBlank(whatsappChatId)) {
+            return whatsappChatId;
+        }
+        return isBlank(telegramChatId) ? null : telegramChatId;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private Optional<Appointment> findAppointmentForTenant(long id) {

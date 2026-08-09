@@ -1,5 +1,6 @@
 package com.mr.sb.beauty_room.entities;
 
+import com.mr.sb.beauty_room.dto.messaging.Channel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,9 @@ public class ConversationState {
 
     @Column(nullable = false, unique = true, length = 100)
     private String chatId;
+
+    @Enumerated(EnumType.STRING)
+    private Channel channel;
 
     private Long tenantId;
 

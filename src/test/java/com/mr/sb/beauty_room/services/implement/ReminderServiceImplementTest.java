@@ -1,9 +1,9 @@
 package com.mr.sb.beauty_room.services.implement;
 
-import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.entities.Appointment;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.Client;
+import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.entities.NotificationType;
 import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
@@ -12,10 +12,13 @@ import com.mr.sb.beauty_room.repository.AppointmentRepository;
 import com.mr.sb.beauty_room.repository.NotificationRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import com.mr.sb.beauty_room.repository.TenantRepository;
+import com.mr.sb.beauty_room.services.IConversationStateService;
+import com.mr.sb.beauty_room.services.IMessagingChannel;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -50,12 +53,26 @@ class ReminderServiceImplementTest {
     private StylistRepository stylistRepository;
     @Mock
     private IMessagingChannel messagingChannel;
+    @Mock
+    private IConversationStateService conversationStateService;
 
-    @InjectMocks
     private ReminderServiceImplement reminderService;
 
     private Tenant tenant(long id) {
         return Tenant.builder().id(id).build();
+    }
+
+    @BeforeEach
+    void setUp() {
+        ConversationStateHelper stateHelper = new ConversationStateHelper(conversationStateService, new ObjectMapper());
+        reminderService = new ReminderServiceImplement(
+                tenantRepository,
+                appointmentRepository,
+                notificationRepository,
+                stylistRepository,
+                conversationStateService,
+                stateHelper,
+                messagingChannel);
     }
 
     private Appointment appointment(long id, LocalDateTime start, String clientChat) {
@@ -77,19 +94,29 @@ class ReminderServiceImplementTest {
                 .thenReturn(List.of(appointment));
     }
 
+    private void stubConversationState() {
+        when(conversationStateService.getOrCreate(anyString())).thenReturn(new ConversationState());
+        when(conversationStateService.save(any(ConversationState.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
     @Test
     void sendUpcomingReminders_appointmentIn24hWindow_shouldSend24hReminderAndMarkSent() {
         Appointment appt = appointment(1L, LocalDateTime.now().plusHours(12), CLIENT_CHAT);
         stubCandidates(appt);
+        stubConversationState();
         when(notificationRepository.existsByAppointmentIdAndType(1L, NotificationType.REMINDER_24H)).thenReturn(false);
 
         reminderService.sendUpcomingReminders();
 
-        verify(messagingChannel).sendInlineKeyboard(eq(CLIENT_CHAT), contains("Recordatorio"),
-                argThat(buttons -> buttons.stream()
-                        .anyMatch(b -> b.callbackData().equals(ReminderServiceImplement.PREFIX_REMINDER_CONFIRM + "1"))
-                        && buttons.stream()
-                        .anyMatch(b -> b.callbackData().equals(ReminderServiceImplement.PREFIX_REMINDER_CANCEL + "1"))));
+        verify(messagingChannel).sendTemplate(eq(CLIENT_CHAT), argThat(template -> {
+            assertThat(template.name()).isEqualTo("appointment_reminder_24h");
+            assertThat(template.fallbackText()).contains("Recordatorio");
+            assertThat(template.buttons()).anyMatch(b -> b.callbackData().equals(ReminderServiceImplement.PREFIX_REMINDER_CONFIRM + "1"));
+            assertThat(template.buttons()).anyMatch(b -> b.callbackData().equals(ReminderServiceImplement.PREFIX_REMINDER_CANCEL + "1"));
+            return true;
+        }));
+        verify(conversationStateService).save(argThat(state ->
+                state.getData() != null && state.getData().contains(ReminderServiceImplement.DATA_REMINDER_APPT_ID)));
         ArgumentCaptor<com.mr.sb.beauty_room.entities.Notification> captor = ArgumentCaptor.forClass(com.mr.sb.beauty_room.entities.Notification.class);
         verify(notificationRepository).save(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo(NotificationType.REMINDER_24H);
@@ -101,11 +128,12 @@ class ReminderServiceImplementTest {
     void sendUpcomingReminders_appointmentWithin2Hours_shouldSend2hReminderOnly() {
         Appointment appt = appointment(2L, LocalDateTime.now().plusHours(1), CLIENT_CHAT);
         stubCandidates(appt);
+        stubConversationState();
         when(notificationRepository.existsByAppointmentIdAndType(2L, NotificationType.REMINDER_2H)).thenReturn(false);
 
         reminderService.sendUpcomingReminders();
 
-        verify(messagingChannel).sendInlineKeyboard(eq(CLIENT_CHAT), contains("Recordatorio"), anyList());
+        verify(messagingChannel).sendTemplate(eq(CLIENT_CHAT), argThat(template -> template.name().equals("appointment_reminder_2h")));
         verify(notificationRepository).save(argThat(n -> n.getType() == NotificationType.REMINDER_2H));
         verify(notificationRepository, never()).existsByAppointmentIdAndType(eq(2L), eq(NotificationType.REMINDER_24H));
     }
@@ -118,19 +146,45 @@ class ReminderServiceImplementTest {
 
         reminderService.sendUpcomingReminders();
 
-        verify(messagingChannel, never()).sendInlineKeyboard(anyString(), anyString(), anyList());
+        verify(messagingChannel, never()).sendTemplate(anyString(), any());
         verify(notificationRepository, never()).save(any());
     }
 
     @Test
-    void sendUpcomingReminders_clientWithoutTelegramChatId_shouldNotSend() {
+    void sendUpcomingReminders_clientWithoutChatId_shouldNotSend() {
         Appointment appt = appointment(4L, LocalDateTime.now().plusHours(12), null);
         stubCandidates(appt);
 
         reminderService.sendUpcomingReminders();
 
-        verify(messagingChannel, never()).sendInlineKeyboard(anyString(), anyString(), anyList());
+        verify(messagingChannel, never()).sendTemplate(anyString(), any());
         verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void sendUpcomingReminders_clientWithWhatsappChatId_shouldSendToWhatsappFirst() {
+        Client client = Client.builder()
+                .id(10L)
+                .telegramChatId("tg-chat")
+                .whatsappChatId("5491101234567")
+                .build();
+        SalonService service = SalonService.builder().id(1L).nameService("Haircut").build();
+        Appointment appt = Appointment.builder()
+                .id(5L)
+                .startDate(LocalDateTime.now().plusHours(12))
+                .status(AppointmentStatus.CONFIRMED)
+                .client(client)
+                .service(service)
+                .tenant(tenant(TENANT_ID))
+                .build();
+        stubCandidates(appt);
+        stubConversationState();
+        when(notificationRepository.existsByAppointmentIdAndType(5L, NotificationType.REMINDER_24H)).thenReturn(false);
+
+        reminderService.sendUpcomingReminders();
+
+        verify(messagingChannel).sendTemplate(eq("5491101234567"), any());
+        verify(messagingChannel, never()).sendTemplate(eq("tg-chat"), any());
     }
 
     @Test
@@ -164,9 +218,7 @@ class ReminderServiceImplementTest {
 
         reminderService.sendDailySummary();
 
-        verify(messagingChannel).sendMessage(eq(STYLIST_CHAT), contains("Resumen del día"));
-        verify(messagingChannel).sendMessage(eq(STYLIST_CHAT), contains("Haircut"));
-        verify(messagingChannel).sendMessage(eq(STYLIST_CHAT), contains("Alice"));
+        verify(messagingChannel).sendTemplate(eq(STYLIST_CHAT), argThat(template -> template.name().equals("daily_summary")));
         verify(notificationRepository).save(argThat(n -> n.getType() == NotificationType.DAILY_SUMMARY));
     }
 
@@ -178,7 +230,7 @@ class ReminderServiceImplementTest {
 
         reminderService.sendDailySummary();
 
-        verify(messagingChannel, never()).sendMessage(anyString(), anyString());
+        verify(messagingChannel, never()).sendTemplate(anyString(), any());
         verify(notificationRepository, never()).save(any());
     }
 
@@ -192,7 +244,7 @@ class ReminderServiceImplementTest {
 
         reminderService.sendDailySummary();
 
-        verify(messagingChannel, never()).sendMessage(anyString(), anyString());
+        verify(messagingChannel, never()).sendTemplate(anyString(), any());
         verify(notificationRepository, never()).save(any());
         verify(appointmentRepository, never()).findStylistDay(any(), any(), any(), any());
     }
@@ -208,6 +260,6 @@ class ReminderServiceImplementTest {
 
         reminderService.sendDailySummary();
 
-        verify(messagingChannel).sendMessage(eq(STYLIST_CHAT), contains("No tenés citas hoy"));
+        verify(messagingChannel).sendTemplate(eq(STYLIST_CHAT), argThat(template -> template.fallbackText().contains("No tenés citas hoy")));
     }
 }

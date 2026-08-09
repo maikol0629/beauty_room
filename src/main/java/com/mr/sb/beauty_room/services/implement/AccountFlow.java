@@ -1,15 +1,15 @@
 package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.dto.appointments.AppointmentResponseDto;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.ConversationState;
 import com.mr.sb.beauty_room.security.TenantScope;
 import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
-import com.mr.sb.beauty_room.services.ITelegramAccountService;
-import com.mr.sb.beauty_room.services.ITelegramViewService;
+import com.mr.sb.beauty_room.services.IChatAccountService;
+import com.mr.sb.beauty_room.services.IChatViewService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,17 +28,17 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
  */
 @Service
 @RequiredArgsConstructor
-public class TelegramAccountFlow {
+public class AccountFlow {
 
-    private static final Logger log = LoggerFactory.getLogger(TelegramAccountFlow.class);
+    private static final Logger log = LoggerFactory.getLogger(AccountFlow.class);
 
     private final IMessagingChannel channel;
-    private final ITelegramViewService view;
+    private final IChatViewService view;
     private final IAppointmentService appointmentService;
-    private final ITelegramAccountService accountService;
+    private final IChatAccountService accountService;
     private final ConversationStateHelper stateHelper;
 
-    public void showMyAppointments(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void showMyAppointments(ChannelMessage msg, ConversationState state, Long tenantId) {
         Optional<Client> clientOpt = accountService.findClientByChat(msg, tenantId);
         if (clientOpt.isEmpty()) {
             endWithMenu(msg, state, tenantId, "Todavía no tenés citas. Agendá una tocando «Agendar cita».");
@@ -51,7 +51,7 @@ public class TelegramAccountFlow {
         stateHelper.updateState(state, STEP_MENU, null);
     }
 
-    public void startCancel(TelegramMessage msg, ConversationState state, Long tenantId) {
+    public void startCancel(ChannelMessage msg, ConversationState state, Long tenantId) {
         Optional<Client> clientOpt = accountService.findClientByChat(msg, tenantId);
         if (clientOpt.isEmpty()) {
             endWithMenu(msg, state, tenantId, "No tenés citas para cancelar. Agendá una tocando «Agendar cita».");
@@ -72,7 +72,7 @@ public class TelegramAccountFlow {
         stateHelper.updateState(state, STEP_CANCEL_SELECT, null);
     }
 
-    public void cancelAppointmentByCallback(TelegramMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
+    public void cancelAppointmentByCallback(ChannelMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
         Long appointmentId;
         try {
             appointmentId = Long.parseLong(appointmentIdText);
@@ -93,7 +93,7 @@ public class TelegramAccountFlow {
                 : "No se pudo cancelar esa cita (¿ya está cancelada o no es tuya?).");
     }
 
-    public void handleReminderConfirm(TelegramMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
+    public void handleReminderConfirm(ChannelMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
         Long appointmentId = parseLongId(appointmentIdText);
         if (appointmentId == null) {
             channel.sendMessage(msg.chatId(), "Cita inválida.");
@@ -112,7 +112,7 @@ public class TelegramAccountFlow {
                 : "No pudimos confirmar tu cita (¿ya estaba confirmada o cancelada?).");
     }
 
-    public void handleReminderCancel(TelegramMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
+    public void handleReminderCancel(ChannelMessage msg, ConversationState state, Long tenantId, String appointmentIdText) {
         Long appointmentId = parseLongId(appointmentIdText);
         if (appointmentId == null) {
             channel.sendMessage(msg.chatId(), "Cita inválida.");
@@ -139,7 +139,7 @@ public class TelegramAccountFlow {
         }
     }
 
-    private void endWithMenu(TelegramMessage msg, ConversationState state, Long tenantId, String text) {
+    private void endWithMenu(ChannelMessage msg, ConversationState state, Long tenantId, String text) {
         view.sendEndWithMenu(msg, tenantId, text);
         stateHelper.updateState(state, STEP_MENU, null);
     }

@@ -58,9 +58,11 @@ public class PanelController {
     public String publicAgenda(Model model) {
         Tenant tenant = tenantHelper.currentTenant();
         String publicUrl = qrCodeService.buildPublicAgendaUrl(tenant.getTenantKey());
+        String whatsappUrl = qrCodeService.buildWhatsappAgendaUrl(tenant.getTenantKey());
         model.addAttribute("tenantKey", tenant.getTenantKey());
         model.addAttribute("tenantName", tenant.getName());
         model.addAttribute("publicUrl", publicUrl);
+        model.addAttribute("whatsappUrl", whatsappUrl);
         return "panel/public";
     }
 
@@ -69,9 +71,23 @@ public class PanelController {
         Tenant tenant = tenantHelper.currentTenant();
         String publicUrl = qrCodeService.buildPublicAgendaUrl(tenant.getTenantKey());
         if (publicUrl == null) {
+            publicUrl = qrCodeService.buildWhatsappAgendaUrl(tenant.getTenantKey());
+        }
+        if (publicUrl == null) {
             return ResponseEntity.noContent().build();
         }
         byte[] png = qrCodeService.generatePng(publicUrl, 320, 320);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
+    }
+
+    @GetMapping(value = "/qr-whatsapp.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> qrWhatsappImage() {
+        Tenant tenant = tenantHelper.currentTenant();
+        String whatsappUrl = qrCodeService.buildWhatsappAgendaUrl(tenant.getTenantKey());
+        if (whatsappUrl == null) {
+            return ResponseEntity.noContent().build();
+        }
+        byte[] png = qrCodeService.generatePng(whatsappUrl, 320, 320);
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
     }
 }

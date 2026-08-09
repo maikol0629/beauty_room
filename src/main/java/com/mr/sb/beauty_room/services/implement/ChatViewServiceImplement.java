@@ -1,8 +1,8 @@
 package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.dto.appointments.AppointmentResponseDto;
-import com.mr.sb.beauty_room.dto.telegram.Button;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.Button;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
@@ -10,9 +10,9 @@ import com.mr.sb.beauty_room.entities.StylistSchedule;
 import com.mr.sb.beauty_room.repository.StylistScheduleRepository;
 import com.mr.sb.beauty_room.services.IAppointmentService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
-import com.mr.sb.beauty_room.services.ITelegramAccountService;
-import com.mr.sb.beauty_room.services.ITelegramViewService;
-import com.mr.sb.beauty_room.util.TelegramDateUtils;
+import com.mr.sb.beauty_room.services.IChatAccountService;
+import com.mr.sb.beauty_room.services.IChatViewService;
+import com.mr.sb.beauty_room.util.ChatDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -43,15 +43,15 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.PREFIX_TIME;
  */
 @Service
 @RequiredArgsConstructor
-public class TelegramViewServiceImplement implements ITelegramViewService {
+public class ChatViewServiceImplement implements IChatViewService {
 
     private final IMessagingChannel channel;
-    private final ITelegramAccountService accountService;
+    private final IChatAccountService accountService;
     private final IAppointmentService appointmentService;
     private final StylistScheduleRepository stylistScheduleRepository;
 
     @Override
-    public void showMenu(TelegramMessage msg, Long tenantId) {
+    public void showMenu(ChannelMessage msg, Long tenantId) {
         boolean isStylist = tenantId != null && accountService.findStylistByChat(msg, tenantId).isPresent();
         if (isStylist) {
             channel.sendKeyboard(msg.chatId(), "Hola " + accountService.safeName(msg) + "! ¿Qué querés hacer?",
@@ -63,13 +63,13 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void sendGuidance(TelegramMessage msg) {
+    public void sendGuidance(ChannelMessage msg) {
         channel.sendMessage(msg.chatId(),
-                "Hola " + accountService.safeName(msg) + "! Para empezar, abrí el enlace de tu salón (deep link de Telegram, ej: https://t.me/SU_BOT?start=tenantKey).");
+                "Hola " + accountService.safeName(msg) + "! Para empezar, abrí el enlace de tu salón (deep link del bot, ej: t.me/SU_BOT?start=tenantKey).");
     }
 
     @Override
-    public void showServiceSelection(TelegramMessage msg, List<SalonService> services) {
+    public void showServiceSelection(ChannelMessage msg, List<SalonService> services) {
         List<Button> buttons = services.stream()
                 .map(s -> new Button(s.getNameService() + " · $" + s.getPrice() + " (" + s.getDuration() + " min)",
                         PREFIX_SERVICE + s.getId()))
@@ -78,7 +78,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showDateOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showDateOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         String stylistId = data.get("stylistId");
         String serviceId = data.get("serviceId");
         if (stylistId == null || serviceId == null) {
@@ -93,7 +93,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = dates.stream()
-                .map(d -> new Button(TelegramDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
+                .map(d -> new Button(ChatDateUtils.dayName(d, TextStyle.SHORT) + " " + d,
                         PREFIX_DATE + d))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
@@ -114,7 +114,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showTimeOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showTimeOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         String dateStr = data.get("date");
         if (dateStr == null) {
             showDateOptions(msg, data, tenantId);
@@ -129,7 +129,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = slots.stream()
-                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_TIME + t))
+                .map(t -> new Button(t.format(ChatDateUtils.TIME_FMT), PREFIX_TIME + t))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
         all.add(new Button("◀ Otra fecha", CB_BACK_DATES));
@@ -137,13 +137,13 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showConfirmationKeyboard(TelegramMessage msg, SalonService service, Stylist stylist,
+    public void showConfirmationKeyboard(ChannelMessage msg, SalonService service, Stylist stylist,
                                          String serviceId, String stylistId, String dateStr, LocalTime time) {
         String text = "📋 Confirmá tu cita:\n\n"
                 + "• Servicio: " + (service != null ? service.getNameService() : serviceId) + "\n"
                 + "• Estilista: " + (stylist != null ? stylist.getNameStylist() : stylistId) + "\n"
                 + "• Fecha: " + dateStr + "\n"
-                + "• Hora: " + time.format(TelegramDateUtils.TIME_FMT) + "\n\n"
+                + "• Hora: " + time.format(ChatDateUtils.TIME_FMT) + "\n\n"
                 + "¿Todo correcto?";
         channel.sendInlineKeyboard(msg.chatId(), text, List.of(
                 new Button("✅ Confirmar", CB_CONFIRM),
@@ -151,7 +151,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showMyAppointmentsSummary(TelegramMessage msg, List<AppointmentResponseDto> citas) {
+    public void showMyAppointmentsSummary(ChannelMessage msg, List<AppointmentResponseDto> citas) {
         if (citas.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No tenés citas registradas.");
             return;
@@ -161,7 +161,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
                 .toList();
         StringBuilder sb = new StringBuilder("📅 Tus citas:\n\n");
         for (AppointmentResponseDto a : sorted) {
-            sb.append("• ").append(a.getStartDate().format(TelegramDateUtils.DATETIME_FMT))
+            sb.append("• ").append(a.getStartDate().format(ChatDateUtils.DATETIME_FMT))
                     .append(" — ").append(a.getService().getName())
                     .append(" (").append(a.getStatus()).append(")\n");
         }
@@ -169,7 +169,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showAgendaSummary(TelegramMessage msg, List<AppointmentResponseDto> citas) {
+    public void showAgendaSummary(ChannelMessage msg, List<AppointmentResponseDto> citas) {
         List<AppointmentResponseDto> filtered = citas.stream()
                 .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED && a.getStatus() != AppointmentStatus.REJECTED)
                 .sorted((a, b) -> a.getStartDate().compareTo(b.getStartDate()))
@@ -180,7 +180,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
         }
         StringBuilder sb = new StringBuilder("📋 Tu agenda:\n\n");
         for (AppointmentResponseDto a : filtered) {
-            sb.append("• ").append(a.getStartDate().format(TelegramDateUtils.DATETIME_FMT))
+            sb.append("• ").append(a.getStartDate().format(ChatDateUtils.DATETIME_FMT))
                     .append(" — ").append(a.getService() != null ? a.getService().getName() : "?")
                     .append(" (").append(a.getClient() != null ? a.getClient().getName() : "?")
                     .append(") [").append(a.getStatus()).append("]\n");
@@ -189,9 +189,9 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showCancelOptions(TelegramMessage msg, List<AppointmentResponseDto> cancellable) {
+    public void showCancelOptions(ChannelMessage msg, List<AppointmentResponseDto> cancellable) {
         List<Button> buttons = cancellable.stream()
-                .map(a -> new Button("Cancelar " + a.getStartDate().format(TelegramDateUtils.DATETIME_FMT) + " (" + a.getService().getName() + ")",
+                .map(a -> new Button("Cancelar " + a.getStartDate().format(ChatDateUtils.DATETIME_FMT) + " (" + a.getService().getName() + ")",
                         PREFIX_CANCEL_APPT + a.getId()))
                 .toList();
         List<Button> all = new ArrayList<>(buttons);
@@ -200,14 +200,14 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showBlockStartOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showBlockStartOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         List<LocalTime> times = buildBlockTimes(Long.parseLong(data.get("stylistId")), LocalDate.parse(data.get("date")), tenantId);
         if (times.isEmpty()) {
             channel.sendMessage(msg.chatId(), "No hay horarios para bloquear ese día. Elegí otro:");
             return;
         }
         List<Button> buttons = new ArrayList<>(times.stream()
-                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_BLOCK_START + t))
+                .map(t -> new Button(t.format(ChatDateUtils.TIME_FMT), PREFIX_BLOCK_START + t))
                 .toList());
         buttons.add(new Button("◀ Otro día", CB_MENU));
         channel.sendInlineKeyboard(msg.chatId(), "¿Desde qué hora?", buttons);
@@ -232,7 +232,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showBlockEndOptions(TelegramMessage msg, Map<String, String> data, Long tenantId) {
+    public void showBlockEndOptions(ChannelMessage msg, Map<String, String> data, Long tenantId) {
         List<LocalTime> times = buildBlockEndTimes(
                 Long.parseLong(data.get("stylistId")), LocalDate.parse(data.get("date")),
                 LocalTime.parse(data.get("start")), tenantId);
@@ -242,7 +242,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
             return;
         }
         List<Button> buttons = new ArrayList<>(times.stream()
-                .map(t -> new Button(t.format(TelegramDateUtils.TIME_FMT), PREFIX_BLOCK_END + t))
+                .map(t -> new Button(t.format(ChatDateUtils.TIME_FMT), PREFIX_BLOCK_END + t))
                 .toList());
         buttons.add(new Button("◀ Cambiar inicio", CB_MENU));
         channel.sendInlineKeyboard(msg.chatId(), "¿Hasta qué hora?", buttons);
@@ -264,10 +264,10 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void showStylistManagementOptions(TelegramMessage msg, List<AppointmentResponseDto> manageable) {
+    public void showStylistManagementOptions(ChannelMessage msg, List<AppointmentResponseDto> manageable) {
         List<Button> buttons = new ArrayList<>();
         for (AppointmentResponseDto a : manageable) {
-            String label = a.getStartDate().format(TelegramDateUtils.TIME_FMT) + " "
+            String label = a.getStartDate().format(ChatDateUtils.TIME_FMT) + " "
                     + (a.getService() != null ? a.getService().getName() : "") + " · "
                     + (a.getClient() != null ? a.getClient().getName() : "");
             buttons.add(new Button("✅ " + label, PREFIX_APPT_COMPLETE + a.getId()));
@@ -279,7 +279,7 @@ public class TelegramViewServiceImplement implements ITelegramViewService {
     }
 
     @Override
-    public void sendEndWithMenu(TelegramMessage msg, Long tenantId, String text) {
+    public void sendEndWithMenu(ChannelMessage msg, Long tenantId, String text) {
         channel.sendMessage(msg.chatId(), text);
         showMenu(msg, tenantId);
     }

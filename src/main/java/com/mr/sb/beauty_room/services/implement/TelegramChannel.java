@@ -1,7 +1,7 @@
 package com.mr.sb.beauty_room.services.implement;
 
-import com.mr.sb.beauty_room.dto.telegram.Button;
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.Button;
+import com.mr.sb.beauty_room.dto.messaging.TemplateMessage;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -20,7 +18,6 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -112,36 +109,11 @@ public class TelegramChannel implements IMessagingChannel {
     }
 
     @Override
-    public Optional<TelegramMessage> parseUpdate(Update update) {
-        if (update == null) {
-            return Optional.empty();
+    public void sendTemplate(String chatId, TemplateMessage template) {
+        if (template.buttons() == null || template.buttons().isEmpty()) {
+            sendMessage(chatId, template.fallbackText());
+        } else {
+            sendInlineKeyboard(chatId, template.fallbackText(), template.buttons());
         }
-        if (update.getMessage() != null) {
-            Message message = update.getMessage();
-            String username = (message.getFrom() != null) ? message.getFrom().getUserName() : null;
-            String firstName = (message.getFrom() != null) ? message.getFrom().getFirstName() : null;
-            Long userId = (message.getFrom() != null) ? message.getFrom().getId() : null;
-            return Optional.of(new TelegramMessage(
-                    String.valueOf(message.getChatId()),
-                    message.getText(),
-                    username,
-                    firstName,
-                    userId,
-                    null));
-        }
-        if (update.getCallbackQuery() != null) {
-            var callback = update.getCallbackQuery();
-            String chatId = (callback.getMessage() != null && callback.getMessage().getChat() != null)
-                    ? String.valueOf(callback.getMessage().getChat().getId())
-                    : null;
-            String username = (callback.getFrom() != null) ? callback.getFrom().getUserName() : null;
-            String firstName = (callback.getFrom() != null) ? callback.getFrom().getFirstName() : null;
-            Long userId = (callback.getFrom() != null) ? callback.getFrom().getId() : null;
-            if (chatId == null) {
-                return Optional.empty();
-            }
-            return Optional.of(new TelegramMessage(chatId, null, username, firstName, userId, callback.getData()));
-        }
-        return Optional.empty();
     }
 }

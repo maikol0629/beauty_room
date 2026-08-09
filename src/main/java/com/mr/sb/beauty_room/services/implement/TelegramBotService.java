@@ -18,7 +18,7 @@ public class TelegramBotService {
     private static final Logger log = LoggerFactory.getLogger(TelegramBotService.class);
 
     private final TelegramBotProperties properties;
-    private final TelegramUpdateHandler telegramUpdateHandler;
+    private final ChatUpdateHandler chatUpdateHandler;
     private final ObjectProvider<TelegramClient> telegramClientProvider;
 
     public String getBotUsername() {
@@ -34,7 +34,7 @@ public class TelegramBotService {
     }
 
     public BotApiMethod<?> onWebhookUpdate(Update update) {
-        return telegramUpdateHandler.handle(update);
+        return chatUpdateHandler.handle(update);
     }
 
     public void registerWebhook() {

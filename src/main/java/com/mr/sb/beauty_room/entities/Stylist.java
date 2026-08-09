@@ -23,6 +23,8 @@ public class Stylist extends User {
 
     private String telegramChatId;
 
+    private String whatsappChatId;
+
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default

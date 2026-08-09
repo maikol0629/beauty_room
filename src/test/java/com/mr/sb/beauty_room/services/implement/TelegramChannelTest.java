@@ -1,6 +1,6 @@
 package com.mr.sb.beauty_room.services.implement;
 
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,14 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.User;
-import org.telegram.telegrambots.meta.api.objects.chat.Chat;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,30 +33,6 @@ class TelegramChannelTest {
     @BeforeEach
     void setUp() {
         channel = new TelegramChannel(telegramClientProvider);
-    }
-
-    @Test
-    void parseUpdate_message_shouldReturnNormalizedMessage() {
-        Update update = new Update();
-        update.setMessage(Message.builder()
-                .chat(Chat.builder().id(111111111L).type("private").build())
-                .text("hola")
-                .from(User.builder().id(9L).userName("juan").firstName("Juan").isBot(false).build())
-                .build());
-
-        Optional<TelegramMessage> parsed = channel.parseUpdate(update);
-
-        assertThat(parsed).isPresent();
-        assertThat(parsed.get().chatId()).isEqualTo("111111111");
-        assertThat(parsed.get().text()).isEqualTo("hola");
-        assertThat(parsed.get().username()).isEqualTo("juan");
-        assertThat(parsed.get().userId()).isEqualTo(9L);
-    }
-
-    @Test
-    void parseUpdate_emptyUpdate_shouldReturnEmpty() {
-        assertThat(channel.parseUpdate(new Update())).isEmpty();
-        assertThat(channel.parseUpdate(null)).isEmpty();
     }
 
     @Test

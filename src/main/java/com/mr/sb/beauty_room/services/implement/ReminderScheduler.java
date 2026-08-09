@@ -1,6 +1,7 @@
 package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.config.TelegramBotProperties;
+import com.mr.sb.beauty_room.config.WhatsAppProperties;
 import com.mr.sb.beauty_room.services.IReminderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,13 +22,14 @@ import java.util.List;
 public class ReminderScheduler {
 
     private final TelegramBotProperties telegramBotProperties;
+    private final WhatsAppProperties whatsappProperties;
     private final IReminderService reminderService;
     private final DataSource dataSource;
 
     @Scheduled(cron = "${app.reminders.interval:0 */15 * * * *}")
     public void runUpcomingReminders() {
         if (!botConfigured()) {
-            log.info("Recordatorios automáticos omitidos: telegram.bot.token no configurado");
+            log.info("Recordatorios automáticos omitidos: no hay canal configurado (telegram.bot.token o whatsapp.access-token)");
             return;
         }
         if (!isReminderSchemaReady()) {
@@ -47,7 +49,7 @@ public class ReminderScheduler {
     @Scheduled(cron = "${app.reminders.daily-summary:0 0 7 * * *}")
     public void runDailySummary() {
         if (!botConfigured()) {
-            log.info("Resumen diario omitido: telegram.bot.token no configurado");
+            log.info("Resumen diario omitido: no hay canal configurado (telegram.bot.token o whatsapp.access-token)");
             return;
         }
         if (!isReminderSchemaReady()) {
@@ -93,7 +95,11 @@ public class ReminderScheduler {
     }
 
     private boolean botConfigured() {
-        String token = telegramBotProperties.getToken();
-        return token != null && !token.isBlank();
+        String telegramToken = telegramBotProperties.getToken();
+        if (telegramToken != null && !telegramToken.isBlank()) {
+            return true;
+        }
+        String whatsappToken = whatsappProperties.getAccessToken();
+        return whatsappToken != null && !whatsappToken.isBlank();
     }
 }

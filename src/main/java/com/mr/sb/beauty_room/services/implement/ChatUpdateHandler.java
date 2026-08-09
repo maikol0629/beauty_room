@@ -1,12 +1,12 @@
 package com.mr.sb.beauty_room.services.implement;
 
-import com.mr.sb.beauty_room.dto.telegram.TelegramMessage;
+import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.ConversationState;
+import com.mr.sb.beauty_room.services.IChatAccountService;
 import com.mr.sb.beauty_room.services.IConversationStateService;
+import com.mr.sb.beauty_room.services.IChatViewService;
 import com.mr.sb.beauty_room.services.IMessagingChannel;
-import com.mr.sb.beauty_room.services.ITelegramAccountService;
-import com.mr.sb.beauty_room.services.ITelegramViewService;
-import com.mr.sb.beauty_room.util.TelegramDateUtils;
+import com.mr.sb.beauty_room.util.ChatDateUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,49 +45,88 @@ import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_INITIAL;
 import static com.mr.sb.beauty_room.services.CallbackConstants.STEP_MENU;
 
 /**
- * Punto de entrada de las actualizaciones de Telegram. Actúa como dispatcher:
- * parsea el update, resuelve el tenant y delega texto/callbacks a los flujos por
- * dominio (TelegramBookingFlow, TelegramStylistFlow, TelegramAccountFlow).
+ * Punto de entrada de las actualizaciones del bot. Actúa como dispatcher:
+ * resuelve el tenant y delega texto/callbacks a los flujos por dominio
+ * (BookingFlow, StylistFlow, AccountFlow). Es agnóstico del canal: recibe un
+ * ChannelMessage ya normalizado por el parser del canal (Telegram, WhatsApp...).
  */
 @Service
 @RequiredArgsConstructor
-public class TelegramUpdateHandler {
+public class ChatUpdateHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(TelegramUpdateHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(ChatUpdateHandler.class);
 
     private static final String PREFIX_REMINDER_CONFIRM = ReminderServiceImplement.PREFIX_REMINDER_CONFIRM;
     private static final String PREFIX_REMINDER_CANCEL = ReminderServiceImplement.PREFIX_REMINDER_CANCEL;
 
     private final IMessagingChannel channel;
     private final IConversationStateService conversationStateService;
-    private final ITelegramAccountService accountService;
-    private final ITelegramViewService view;
+    private final IChatAccountService accountService;
+    private final IChatViewService view;
     private final ConversationStateHelper stateHelper;
-    private final TelegramBookingFlow bookingFlow;
-    private final TelegramStylistFlow stylistFlow;
-    private final TelegramAccountFlow accountFlow;
+    private final BookingFlow bookingFlow;
+    private final StylistFlow stylistFlow;
+    private final AccountFlow accountFlow;
+    private final TelegramWebhookParser telegramWebhookParser;
 
+    /**
+     * Entrada usada por el webhook de Telegram (mantiene la firma que espera el
+     * starter de Spring). Parsea el update y delega en handleMessage.
+     */
     public BotApiMethod<?> handle(Update update) {
-        Optional<TelegramMessage> parsed = channel.parseUpdate(update);
+        Optional<ChannelMessage> parsed = telegramWebhookParser.parse(update);
         if (parsed.isEmpty()) {
             return null;
         }
-        TelegramMessage msg = parsed.get();
-        log.info("Update entrante chat_id={} username={} text={} callback={}", msg.chatId(), msg.username(), msg.text(), msg.callbackData());
+        handleMessage(parsed.get());
+        return null;
+    }
+
+    /**
+     * Entrada neutra de canal: procesa un mensaje ya normalizado.
+     */
+    public void handleMessage(ChannelMessage msg) {
+        log.info("Update entrante channel={} chat_id={} username={} text={} callback={}",
+                msg.channel(), msg.chatId(), msg.username(), msg.text(), msg.callbackData());
 
         ConversationState state = conversationStateService.getOrCreate(msg.chatId());
+        if (state.getChannel() != msg.channel()) {
+            state.setChannel(msg.channel());
+            conversationStateService.save(state);
+        }
 
         if (msg.callbackData() != null) {
-            handleCallback(msg, state);
+            if (isMenuKeyword(msg.callbackData())) {
+                handleText(withText(msg, msg.callbackData()), state);
+            } else {
+                handleCallback(msg, state);
+            }
         } else {
             handleText(msg, state);
         }
-        return null;
+    }
+
+    private boolean isMenuKeyword(String text) {
+        if (text == null) {
+            return false;
+        }
+        String lower = text.toLowerCase(Locale.ROOT);
+        return lower.equals("agendar cita")
+                || lower.equals("mis citas")
+                || lower.equals("cancelar cita")
+                || lower.equals("ver agenda")
+                || lower.equals("bloquear")
+                || lower.equals("bloquear horario")
+                || lower.equals("gestionar citas");
+    }
+
+    private ChannelMessage withText(ChannelMessage msg, String text) {
+        return new ChannelMessage(msg.channel(), msg.chatId(), text, msg.username(), msg.firstName(), msg.userId(), null);
     }
 
     // ============================ TEXTO ============================
 
-    private void handleText(TelegramMessage msg, ConversationState state) {
+    private void handleText(ChannelMessage msg, ConversationState state) {
         String text = msg.text() == null ? "" : msg.text().trim();
         Long tenantId = resolveTenant(msg, state);
 
@@ -137,6 +176,10 @@ public class TelegramUpdateHandler {
             endWithMenu(msg, state, tenantId, "El reagendado llega pronto. Por ahora, cancelá la cita y agendá una nueva.");
             return;
         }
+        if (isReminderTextReply(lower)) {
+            handleReminderTextReply(msg, state, tenantId, lower);
+            return;
+        }
 
         Map<String, String> data = stateHelper.parseData(state.getData());
         String step = state.getCurrentStep();
@@ -151,7 +194,7 @@ public class TelegramUpdateHandler {
 
     // ============================ CALLBACK ============================
 
-    private void handleCallback(TelegramMessage msg, ConversationState state) {
+    private void handleCallback(ChannelMessage msg, ConversationState state) {
         String cb = msg.callbackData();
         if (cb == null) {
             return;
@@ -235,6 +278,10 @@ public class TelegramUpdateHandler {
                     accountFlow.handleReminderConfirm(msg, state, tenantId, cb.substring(PREFIX_REMINDER_CONFIRM.length()));
                 } else if (cb.startsWith(PREFIX_REMINDER_CANCEL)) {
                     accountFlow.handleReminderCancel(msg, state, tenantId, cb.substring(PREFIX_REMINDER_CANCEL.length()));
+                } else if (ReminderServiceImplement.CB_REMINDER_CONFIRM.equals(cb)) {
+                    handleReminderFromState(msg, state, tenantId, true);
+                } else if (ReminderServiceImplement.CB_REMINDER_CANCEL.equals(cb)) {
+                    handleReminderFromState(msg, state, tenantId, false);
                 } else {
                     endWithMenu(msg, state, tenantId, "Opción desconocida. Abrí el menú:");
                 }
@@ -244,11 +291,11 @@ public class TelegramUpdateHandler {
 
     // ============================ DESPACHO DE CALLBACKS ============================
 
-    private void handleServiceCallback(TelegramMessage msg, ConversationState state, Long tenantId, String serviceIdText) {
+    private void handleServiceCallback(ChannelMessage msg, ConversationState state, Long tenantId, String serviceIdText) {
         bookingFlow.selectService(msg, state, tenantId, serviceIdText);
     }
 
-    private void handleDateCallback(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String dateText) {
+    private void handleDateCallback(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String dateText) {
         try {
             bookingFlow.selectDate(msg, state, data, tenantId, LocalDate.parse(dateText));
         } catch (DateTimeParseException e) {
@@ -261,9 +308,9 @@ public class TelegramUpdateHandler {
         }
     }
 
-    private void handleTimeCallback(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String timeText) {
+    private void handleTimeCallback(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String timeText) {
         try {
-            bookingFlow.selectTime(msg, state, data, tenantId, TelegramDateUtils.parseTime(timeText));
+            bookingFlow.selectTime(msg, state, data, tenantId, ChatDateUtils.parseTime(timeText));
         } catch (DateTimeParseException e) {
             channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
             view.showTimeOptions(msg, data, tenantId);
@@ -274,7 +321,7 @@ public class TelegramUpdateHandler {
         }
     }
 
-    private void handleBlockCallbacks(TelegramMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String cb) {
+    private void handleBlockCallbacks(ChannelMessage msg, ConversationState state, Map<String, String> data, Long tenantId, String cb) {
         if (cb.startsWith(PREFIX_BLOCK_DATE)) {
             try {
                 stylistFlow.selectBlockDate(msg, state, data, tenantId, LocalDate.parse(cb.substring(PREFIX_BLOCK_DATE.length())));
@@ -288,7 +335,7 @@ public class TelegramUpdateHandler {
             }
         } else if (cb.startsWith(PREFIX_BLOCK_START)) {
             try {
-                stylistFlow.selectBlockStart(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_START.length())));
+                stylistFlow.selectBlockStart(msg, state, data, tenantId, ChatDateUtils.parseTime(cb.substring(PREFIX_BLOCK_START.length())));
             } catch (DateTimeParseException e) {
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockStartOptions(msg, data, tenantId);
@@ -299,7 +346,7 @@ public class TelegramUpdateHandler {
             }
         } else if (cb.startsWith(PREFIX_BLOCK_END)) {
             try {
-                stylistFlow.selectBlockEnd(msg, state, data, tenantId, TelegramDateUtils.parseTime(cb.substring(PREFIX_BLOCK_END.length())));
+                stylistFlow.selectBlockEnd(msg, state, data, tenantId, ChatDateUtils.parseTime(cb.substring(PREFIX_BLOCK_END.length())));
             } catch (DateTimeParseException e) {
                 channel.sendMessage(msg.chatId(), "Hora inválida. Elegí otra:");
                 view.showBlockEndOptions(msg, data, tenantId);
@@ -311,7 +358,7 @@ public class TelegramUpdateHandler {
         }
     }
 
-    private void handleAppointmentCallbacks(TelegramMessage msg, ConversationState state, Long tenantId, String cb) {
+    private void handleAppointmentCallbacks(ChannelMessage msg, ConversationState state, Long tenantId, String cb) {
         if (cb.startsWith(PREFIX_APPT_COMPLETE)) {
             stylistFlow.manageAppointmentByCallback(msg, state, tenantId, PREFIX_APPT_COMPLETE, cb.substring(PREFIX_APPT_COMPLETE.length()));
         } else if (cb.startsWith(PREFIX_APPT_NOSHOW)) {
@@ -323,7 +370,39 @@ public class TelegramUpdateHandler {
 
     // ============================ HELPERS ============================
 
-    private Long resolveTenant(TelegramMessage msg, ConversationState state) {
+    private void handleReminderFromState(ChannelMessage msg, ConversationState state, Long tenantId, boolean confirm) {
+        Map<String, String> data = stateHelper.parseData(state.getData());
+        String appointmentId = data.get(ReminderServiceImplement.DATA_REMINDER_APPT_ID);
+        if (appointmentId == null || appointmentId.isBlank()) {
+            endWithMenu(msg, state, tenantId, "No encontramos la cita del recordatorio. Abrí el menú:");
+            return;
+        }
+        if (confirm) {
+            accountFlow.handleReminderConfirm(msg, state, tenantId, appointmentId);
+        } else {
+            accountFlow.handleReminderCancel(msg, state, tenantId, appointmentId);
+        }
+    }
+
+    private boolean isReminderTextReply(String lower) {
+        return lower.equals("confirmar") || lower.equals("confirmo") || lower.equals("si")
+                || lower.equals("cancelar") || lower.equals("no voy");
+    }
+
+    private void handleReminderTextReply(ChannelMessage msg, ConversationState state, Long tenantId, String lower) {
+        Map<String, String> data = stateHelper.parseData(state.getData());
+        String appointmentId = data.get(ReminderServiceImplement.DATA_REMINDER_APPT_ID);
+        if (appointmentId == null || appointmentId.isBlank()) {
+            return;
+        }
+        if (lower.equals("confirmar") || lower.equals("confirmo") || lower.equals("si")) {
+            accountFlow.handleReminderConfirm(msg, state, tenantId, appointmentId);
+        } else {
+            accountFlow.handleReminderCancel(msg, state, tenantId, appointmentId);
+        }
+    }
+
+    private Long resolveTenant(ChannelMessage msg, ConversationState state) {
         Long tenantId = state.getTenantId() != null ? state.getTenantId() : accountService.resolveTenant(msg);
         if (tenantId != null && state.getTenantId() == null) {
             state.setTenantId(tenantId);
@@ -331,7 +410,7 @@ public class TelegramUpdateHandler {
         return tenantId;
     }
 
-    private void endWithMenu(TelegramMessage msg, ConversationState state, Long tenantId, String text) {
+    private void endWithMenu(ChannelMessage msg, ConversationState state, Long tenantId, String text) {
         view.sendEndWithMenu(msg, tenantId, text);
         stateHelper.updateState(state, STEP_MENU, null);
     }
