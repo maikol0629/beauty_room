@@ -66,6 +66,16 @@ public class ChatAccountServiceImplement implements IChatAccountService {
     }
 
     @Override
+    public boolean isTenantUsable(Long tenantId) {
+        if (tenantId == null) {
+            return false;
+        }
+        return tenantRepository.findById(tenantId)
+                .map(Tenant::isUsable)
+                .orElse(false);
+    }
+
+    @Override
     public Optional<Client> findClientByChat(ChannelMessage msg, Long tenantId) {
         return msg.channel() == Channel.WHATSAPP
                 ? clientRepository.findByWhatsappChatIdAndTenantId(msg.chatId(), tenantId)
@@ -102,6 +112,23 @@ public class ChatAccountServiceImplement implements IChatAccountService {
     @Override
     public Optional<Stylist> findStylistByIdAndTenant(Long stylistId, Long tenantId) {
         return stylistRepository.findByIdAndTenantId(stylistId, tenantId);
+    }
+
+    @Override
+    public Optional<Stylist> linkStylistByCode(ChannelMessage msg, String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        return stylistRepository.findByVincularCode(code).map(stylist -> {
+            if (msg.channel() == Channel.WHATSAPP) {
+                stylist.setWhatsappChatId(msg.chatId());
+            } else {
+                stylist.setTelegramChatId(msg.chatId());
+            }
+            stylist.setVincularCode(null);
+            stylistRepository.save(stylist);
+            return stylist;
+        });
     }
 
     @Override

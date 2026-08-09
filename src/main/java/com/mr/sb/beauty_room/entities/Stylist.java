@@ -18,12 +18,16 @@ public class Stylist extends User {
     @Column(nullable = false)
     private String nameStylist;
 
-    @Column(nullable = false)
     private String phone;
 
     private String telegramChatId;
 
     private String whatsappChatId;
+
+    /** Código secreto del deep link de vinculación (t.me/<bot>?start=vincular-<código>). */
+    @Column(name = "vincular_code", unique = true, length = 32)
+    @JsonIgnore
+    private String vincularCode;
 
     @OneToMany(mappedBy = "stylist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -42,7 +46,9 @@ public class Stylist extends User {
 
     @PrePersist
     public void prePersist() {
-        this.setRole(Role.STYLIST);
+        if (this.getRole() == null) {
+            this.setRole(Role.STYLIST);
+        }
     }
 }
 

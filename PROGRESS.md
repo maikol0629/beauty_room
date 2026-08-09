@@ -1,6 +1,6 @@
 # 📊 Dashboard de Progreso — Beauty Room MVP
 
-**Actualizado:** 8 de agosto de 2026  
+**Actualizado:** 9 de agosto de 2026  
 **Próxima revisión:** Después de Fase 7
 
 ---
@@ -24,6 +24,10 @@
 ✅ Refactor de TelegramUpdateHandler: de 1.086 líneas monolíticas a dispatcher + flujos por dominio (Fases 1-7, 9 del plan de refactor; ver docs/plan-refactor-telegram-handler.md)
 ✅ WhatsApp (Fase 12): bot multi-canal Meta Cloud API — ChannelRouter @Primary, webhook con firma verificada, recordatorios por template, deep link wa.me, panel con doble QR; fix de primer mensaje de WhatsApp: el router usa el canal de ConversationState (V4) para responder por WhatsApp aunque el cliente aún no exista (114 tests OK)
 ✅ Panel Super Admin: rol SUPER_ADMIN + tenant de plataforma (beauty-room-platform), cuenta auto-provisionada (app.superadmin.email/password), /panel/super/** con dashboard (KPIs globales), CRUD de salones (crear con usuario ADMIN del salón, editar, suspender/activar) y detalle con usuarios + últimas citas (128 tests OK)
+✅ Alta de estilistas desde el panel: GET /panel/stylists/new + POST (contraseña obligatoria al crear, codificada con BCrypt), form dual crear/editar, botón "Nuevo estilista"; fix de StylistServiceImplement.save que no persistía el password (NOT NULL) — desbloquea el flujo salón nuevo → estilista → servicio → agendamiento (133 tests OK)
+✅ Vinculación de estilista por deep link (sin chatId manual): el panel genera un código secreto por estilista (columna vincular_code, V6) y muestra `https://t.me/<bot>?start=vincular-<código>` con botón Copiar; al tocar el enlace el bot guarda el chatId (Telegram o WhatsApp) y consume el código; botón "Regenerar enlace" en el listado; el form ya no pide el id numérico (144 tests OK)
+✅ El admin del salón también es estilista: el Super Admin crea/edita salones con nombre y teléfono del administrador (TenantCreateDto.adminName/adminPhone), y al crear el tenant se crea la cuenta del admin como Stylist con role ADMIN (una fila en users + su perfil en stylist, mismo id, herencia JOINED); V7 habilita phone NULL en stylist y backfillea los admins existentes; el panel y el bot lo tratan como estilista (menu "Ver agenda", /panel/stylists, clientes de la API); seed admin@example.com (V8, idempotente); 165 tests OK
+✅ Soft delete de salones para el Super Admin: botón "Eliminar" (con confirmación) en el listado → POST /panel/super/tenants/{id}/delete → ISuperAdminService.deleteTenant marca TenantStatus.CANCELLED (sin borrar data; el salón queda inaccesible y oculto del listado salvo filtrar por estado CANCELLED); 169 tests OK
 ❌ Tests E2E Postman: collection creada, ejecución manual pendiente
 ```
 
@@ -404,6 +408,6 @@ Antes de empezar Fase 0 (completado):
 
 ---
 
-**Última actualización:** 6 de agosto de 2026 12:30 UTC  
+**Última actualización:** 9 de agosto de 2026 16:40 UTC-5  
 **Responsable:** Auditoría automática + Copilot  
 **Próximo review:** Después de Fase 6

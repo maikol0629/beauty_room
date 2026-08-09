@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Salón no disponible — Beauty Room</title>
+  <link rel="stylesheet" th:href="@{/css/panel.css}">
+</head>
+<body class="login-body">
+<div class="login-card">
+  <h1>Salón no disponible</h1>
+  <p class="muted">Tu salón no está activo en este momento: el plan venció o fue suspendido.</p>
+  <p class="muted">Contactate con el administrador de la plataforma para regularizar la situación.</p>
+  <form th:action="@{/panel/logout}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">Cerrar sesión</button>
+  </form>
+</div>
+</body>
+</html>

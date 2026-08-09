@@ -1,5 +1,6 @@
 package com.mr.sb.beauty_room.controllers;
 
+import com.mr.sb.beauty_room.exceptions.TenantSuspendedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,5 +30,20 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getMessage()).isEqualTo("Validation failed");
         assertThat(response.getBody().getErrors()).containsKey("email");
         assertThat(response.getBody().getPath()).isEqualTo("/api/appointment/save");
+    }
+
+    @Test
+    void shouldReturnForbiddenForTenantSuspended() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        TenantSuspendedException exception = new TenantSuspendedException("El tenant 5 no está disponible");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/appointments");
+        request.setServletPath("/api/appointments");
+
+        ResponseEntity<ApiErrorResponse> response = handler.handleTenantSuspended(exception, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("El tenant 5 no está disponible");
+        assertThat(response.getBody().getPath()).isEqualTo("/api/appointments");
     }
 }

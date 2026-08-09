@@ -18,6 +18,8 @@ public interface IChatViewService {
 
     void sendGuidance(ChannelMessage msg);
 
+    void sendTenantUnavailable(ChannelMessage msg);
+
     void showServiceSelection(ChannelMessage msg, List<SalonService> services);
 
     void showDateOptions(ChannelMessage msg, Map<String, String> data, Long tenantId);

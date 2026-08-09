@@ -1,6 +1,9 @@
 package com.mr.sb.beauty_room.security;
 
 import com.mr.sb.beauty_room.exceptions.TenantNotResolvedException;
+import com.mr.sb.beauty_room.exceptions.TenantSuspendedException;
+import com.mr.sb.beauty_room.entities.Tenant;
+import com.mr.sb.beauty_room.repository.TenantRepository;
 import com.mr.sb.beauty_room.services.auth.JwtService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +11,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -18,6 +23,7 @@ public class TenantInterceptor implements HandlerInterceptor {
     private static final ThreadLocal<Long> tenantIdHolder = new ThreadLocal<>();
 
     private final JwtService jwtService;
+    private final TenantRepository tenantRepository;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -26,9 +32,18 @@ public class TenantInterceptor implements HandlerInterceptor {
             tenantId = resolveFromHeader(request);
         }
         if (tenantId != null) {
+            assertTenantUsable(tenantId);
             tenantIdHolder.set(tenantId);
         }
         return true;
+    }
+
+    private void assertTenantUsable(Long tenantId) {
+        Optional<Tenant> tenant = tenantRepository.findById(tenantId);
+        if (tenant.isEmpty() || !tenant.get().isUsable()) {
+            throw new TenantSuspendedException(
+                    "El tenant " + tenantId + " no está disponible: su plan venció o fue suspendido.");
+        }
     }
 
     @Override

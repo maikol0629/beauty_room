@@ -21,6 +21,12 @@ public class StylistSaveDto {
     @Email
     private String email;
 
+    /**
+     * Contraseña del estilista. Obligatoria al crear; se ignora en edición
+     * (no se valida aquí porque el form de edición la deja vacía).
+     */
+    private String password;
+
     @NotBlank
     @Size(min = 7, max = 20)
     private String phone;

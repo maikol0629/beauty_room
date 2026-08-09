@@ -19,11 +19,14 @@ INSERT INTO users (id, email, password, role, tenant_id) VALUES (4, 'bob@example
 -- Usuarios de prueba del tenant 3 (Beauty Room Pro)
 INSERT INTO users (id, email, password, role, tenant_id) VALUES (5, 'carlos@example.com', '$2a$10$ijbBrguZGkrCu2l4FBiY2uo8FQboCLHdO3e2vm0hRe3LDc/.dQP8K', 'STYLIST', 3);
 INSERT INTO users (id, email, password, role, tenant_id) VALUES (6, 'diana@example.com', '$2a$10$ijbBrguZGkrCu2l4FBiY2uo8FQboCLHdO3e2vm0hRe3LDc/.dQP8K', 'CLIENT', 3);
+-- Admin-estilista del tenant 1 (rol ADMIN + fila stylist con el mismo id)
+INSERT INTO users (id, email, password, role, tenant_id) VALUES (7, 'admin@example.com', '$2a$10$ijbBrguZGkrCu2l4FBiY2uo8FQboCLHdO3e2vm0hRe3LDc/.dQP8K', 'ADMIN', 1);
 
 -- Insertar en Stylist (usa el mismo id que users)
 INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (1, 'John Doe', '123456789', 1, '555000111');
 INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (2, 'Jane Smith', '987654321', 2, '555000222');
 INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (5, 'Carlos Ruiz', '555000333', 3, '555000333');
+INSERT INTO stylist (id, name_stylist, phone, id_stylist_room, telegram_chat_id) VALUES (7, 'María López', '555000777', 1, NULL);
 
 -- Insertar en Client (usa el mismo id que users)
 INSERT INTO client (id, name_client, phone, telegram_chat_id) VALUES (3, 'Alice Johnson', '5551234', '111111111');

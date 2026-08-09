@@ -4,6 +4,7 @@ import com.mr.sb.beauty_room.config.SuperAdminInitializer;
 import com.mr.sb.beauty_room.dto.superadmin.TenantCreateDto;
 import com.mr.sb.beauty_room.dto.superadmin.TenantUpdateDto;
 import com.mr.sb.beauty_room.entities.Role;
+import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.entities.TenantPlan;
 import com.mr.sb.beauty_room.entities.TenantStatus;
@@ -65,10 +66,14 @@ public class SuperAdminServiceImplement implements ISuperAdminService {
                 .build();
         Tenant saved = tenantRepository.save(tenant);
 
-        userRepository.save(User.builder()
+        // El administrador del salón también es estilista: una fila en users con
+        // role ADMIN + su perfil en stylist (mismo id, herencia JOINED).
+        userRepository.save(Stylist.builder()
                 .email(dto.getAdminEmail())
                 .password(passwordEncoder.encode(dto.getAdminPassword()))
                 .role(Role.ADMIN)
+                .nameStylist(dto.getAdminName())
+                .phone(dto.getAdminPhone())
                 .tenant(saved)
                 .build());
         return saved;
@@ -97,6 +102,12 @@ public class SuperAdminServiceImplement implements ISuperAdminService {
         }
         tenant.setStatus(status);
         return tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    @Override
+    public boolean deleteTenant(Long id) {
+        return setTenantStatus(id, TenantStatus.CANCELLED) != null;
     }
 
     @Override

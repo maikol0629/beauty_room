@@ -40,6 +40,10 @@ public class SuperAdminInitializer implements ApplicationRunner {
                                 .plan(TenantPlan.PREMIUM)
                                 .status(TenantStatus.ACTIVE)
                                 .build()));
+        if (platformTenant.getTrialEndsAt() != null) {
+            platformTenant.setTrialEndsAt(null);
+            tenantRepository.save(platformTenant);
+        }
 
         if (userRepository.findByEmail(properties.getEmail()).isEmpty()) {
             userRepository.save(User.builder()

@@ -53,6 +53,8 @@ public class PanelSuperAdminController {
         }
         if (status != null) {
             tenants = tenants.stream().filter(t -> t.getStatus() == status).toList();
+        } else {
+            tenants = tenants.stream().filter(t -> t.getStatus() != TenantStatus.CANCELLED).toList();
         }
         model.addAttribute("tenants", tenants);
         model.addAttribute("plans", TenantPlan.values());
@@ -148,6 +150,14 @@ public class PanelSuperAdminController {
         boolean ok = superAdminService.setTenantStatus(id, status) != null;
         ra.addFlashAttribute(ok ? "success" : "error",
                 ok ? "Estado del salón actualizado a " + status : "No se pudo actualizar el estado del salón");
+        return "redirect:/panel/super/tenants";
+    }
+
+    @PostMapping("/tenants/{id}/delete")
+    public String delete(@PathVariable long id, RedirectAttributes ra) {
+        boolean ok = superAdminService.deleteTenant(id);
+        ra.addFlashAttribute(ok ? "success" : "error",
+                ok ? "Salón eliminado (quedó inaccesible y oculto del listado)" : "No se pudo eliminar el salón");
         return "redirect:/panel/super/tenants";
     }
 }

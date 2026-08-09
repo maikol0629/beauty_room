@@ -25,6 +25,13 @@ public interface ISuperAdminService {
 
     Tenant setTenantStatus(Long id, TenantStatus status);
 
+    /**
+     * Soft delete de un salón: lo marca como CANCELLED (queda inaccesible y
+     * oculto del listado, sin borrar su data). Devuelve false si el tenant no
+     * existe o es el tenant de plataforma.
+     */
+    boolean deleteTenant(Long id);
+
     List<User> findTenantUsers(Long tenantId);
 
     long countTenants();

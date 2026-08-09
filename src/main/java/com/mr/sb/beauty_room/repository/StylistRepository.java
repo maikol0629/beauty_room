@@ -30,4 +30,6 @@ public interface StylistRepository extends JpaRepository<Stylist, Long> {
 
     @Query("SELECT s FROM Stylist s WHERE s.whatsappChatId = :whatsappChatId AND s.tenant.id = :tenantId")
     Optional<Stylist> findByWhatsappChatIdAndTenantId(@Param("whatsappChatId") String whatsappChatId, @Param("tenantId") Long tenantId);
+
+    Optional<Stylist> findByVincularCode(String vincularCode);
 }

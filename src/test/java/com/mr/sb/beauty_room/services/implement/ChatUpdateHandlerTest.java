@@ -15,6 +15,7 @@ import com.mr.sb.beauty_room.services.IMessagingChannel;
 import com.mr.sb.beauty_room.entities.AppointmentStatus;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.ConversationState;
+import com.mr.sb.beauty_room.entities.Role;
 import com.mr.sb.beauty_room.entities.SalonService;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
@@ -46,6 +47,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -88,6 +90,7 @@ class ChatUpdateHandlerTest {
                 channel, view, appointmentService, accountService, stateHelper);
         handler = new ChatUpdateHandler(channel, conversationStateService, accountService, view,
                 stateHelper, bookingFlow, stylistFlow, accountFlow, telegramWebhookParser);
+        lenient().when(accountService.isTenantUsable(anyLong())).thenReturn(true);
     }
 
     @AfterEach
@@ -159,6 +162,34 @@ class ChatUpdateHandlerTest {
     }
 
     @Test
+    void textFromSuspendedTenant_shouldSendUnavailableAndResetState() {
+        stubMessage(new ChannelMessage(Channel.TELEGRAM, "111", "Agendar cita", "juan", "Juan", 123L, null));
+        when(accountService.isTenantUsable(1L)).thenReturn(false);
+        ConversationState state = state("111", "MENU", null, 1L);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("111"), contains("plan venció"));
+        verify(channel, never()).sendKeyboard(anyString(), anyString(), anyList());
+        verify(conversationStateService).save(argThat(s -> "INITIAL".equals(s.getCurrentStep())));
+    }
+
+    @Test
+    void callbackFromSuspendedTenant_shouldSendUnavailableAndResetState() {
+        stubMessage(new ChannelMessage(Channel.TELEGRAM, "111", null, "juan", "Juan", 123L, "CONFIRM"));
+        when(accountService.isTenantUsable(1L)).thenReturn(false);
+        ConversationState state = state("111", "CONFIRM", null, 1L);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("111"), contains("plan venció"));
+        verify(appointmentService, never()).save(any());
+        verify(conversationStateService).save(argThat(s -> "INITIAL".equals(s.getCurrentStep())));
+    }
+
+    @Test
     void unknownChatId_shouldSendGuidanceMessageInsteadOfKeyboard() {
         stubMessage(new ChannelMessage(Channel.TELEGRAM, "999", "/start", null, null, null, null));
         when(accountService.resolveTenant(any(ChannelMessage.class))).thenReturn(null);
@@ -169,6 +200,55 @@ class ChatUpdateHandlerTest {
 
         verify(channel).sendMessage(eq("999"), contains("enlace de tu salón"));
         verify(channel, never()).sendKeyboard(anyString(), anyString(), anyList());
+    }
+
+    @Test
+    void deepLinkVincular_shouldLinkStylistAndSendConfirmation() {
+        stubMessage(new ChannelMessage(Channel.TELEGRAM, "777777777", "/start vincular-abc123", "juan", "Juan", 123L, null));
+        Stylist stylist = Stylist.builder().id(5L).nameStylist("Ana Estilista")
+                .tenant(Tenant.builder().id(1L).build()).build();
+        when(accountService.linkStylistByCode(any(ChannelMessage.class), eq("abc123"))).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(ChannelMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
+        ConversationState state = state("777777777", null, null, null);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("777777777"), contains("Cuenta vinculada"));
+        verify(channel).sendKeyboard(eq("777777777"), contains("Hola"),
+                argThat(buttons -> buttons.contains("Ver agenda")));
+        verify(accountService).linkStylistByCode(any(ChannelMessage.class), eq("abc123"));
+        verify(conversationStateService).save(argThat(s -> Long.valueOf(1L).equals(s.getTenantId())
+                && "MENU".equals(s.getCurrentStep())));
+    }
+
+    @Test
+    void whatsappPlainTextVincular_shouldLinkStylist() {
+        stubMessage(new ChannelMessage(Channel.WHATSAPP, "5491101234567", "vincular-xyz789", null, null, null, null));
+        Stylist stylist = Stylist.builder().id(5L).nameStylist("Ana Estilista")
+                .tenant(Tenant.builder().id(1L).build()).build();
+        when(accountService.linkStylistByCode(any(ChannelMessage.class), eq("xyz789"))).thenReturn(Optional.of(stylist));
+        when(accountService.findStylistByChat(any(ChannelMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
+        ConversationState state = state("5491101234567", null, null, null);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("5491101234567"), contains("Cuenta vinculada"));
+        verify(accountService).linkStylistByCode(any(ChannelMessage.class), eq("xyz789"));
+    }
+
+    @Test
+    void deepLinkVincular_unknownCode_shouldSendGuidance() {
+        stubMessage(new ChannelMessage(Channel.TELEGRAM, "888", "/start vincular-zzz", null, null, null, null));
+        when(accountService.linkStylistByCode(any(ChannelMessage.class), eq("zzz"))).thenReturn(Optional.empty());
+        ConversationState state = state("888", null, null, null);
+        stubGetOrCreate(state);
+
+        handler.handle(new Update());
+
+        verify(channel).sendMessage(eq("888"), contains("enlace de tu salón"));
+        verify(accountService).linkStylistByCode(any(ChannelMessage.class), eq("zzz"));
     }
 
     @Test
@@ -397,6 +477,26 @@ class ChatUpdateHandlerTest {
                 .tenant(Tenant.builder().id(1L).build()).build();
         when(accountService.resolveTenant(any(ChannelMessage.class))).thenReturn(1L);
         when(accountService.findStylistByChat(any(ChannelMessage.class), eq(1L))).thenReturn(Optional.of(stylist));
+
+        handler.handle(new Update());
+
+        verify(channel).sendKeyboard(eq("111"), contains("Hola"),
+                argThat(buttons -> buttons.contains("Ver agenda")
+                        && buttons.contains("Bloquear horario")
+                        && buttons.contains("Gestionar citas")));
+    }
+
+    @Test
+    void adminStylist_shouldGetStylistMenu() {
+        stubMessage(new ChannelMessage(Channel.TELEGRAM, "111", "/start", "maria", "María", 123L, null));
+        ConversationState state = state("111", null, null, null);
+        stubGetOrCreate(state);
+
+        Stylist adminStylist = Stylist.builder().id(7L).nameStylist("María López")
+                .role(Role.ADMIN)
+                .tenant(Tenant.builder().id(1L).build()).build();
+        when(accountService.resolveTenant(any(ChannelMessage.class))).thenReturn(1L);
+        when(accountService.findStylistByChat(any(ChannelMessage.class), eq(1L))).thenReturn(Optional.of(adminStylist));
 
         handler.handle(new Update());
 

@@ -51,12 +51,17 @@
       <td style="display:flex; gap:8px;">
         <a class="btn btn-outline btn-sm" th:href="@{/panel/super/tenants/{id}(id=${t.id})}">Ver</a>
         <a class="btn btn-outline btn-sm" th:href="@{/panel/super/tenants/{id}/edit(id=${t.id})}">Editar</a>
-        <form th:action="@{/panel/super/tenants/{id}/status(id=${t.id})}" method="post" style="margin:0;">
+        <form th:if="${t.status != 'CANCELLED'}" th:action="@{/panel/super/tenants/{id}/status(id=${t.id})}" method="post" style="margin:0;">
           <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
           <input type="hidden" name="status" th:value="${t.status == 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'}"/>
           <button type="submit" class="btn btn-sm"
                   th:classappend="${t.status == 'ACTIVE'} ? 'btn-danger'"
                   th:text="${t.status == 'ACTIVE'} ? 'Suspender' : 'Activar'">Suspender</button>
+        </form>
+        <form th:if="${t.status != 'CANCELLED'}" th:action="@{/panel/super/tenants/{id}/delete(id=${t.id})}" method="post" style="margin:0;"
+              onsubmit="return confirm('¿Eliminar este salón? Se volverá inaccesible y se ocultará del listado.');">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
         </form>
       </td>
     </tr>

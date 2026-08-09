@@ -5,6 +5,7 @@ import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.Client;
 import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
+import com.mr.sb.beauty_room.entities.TenantStatus;
 import com.mr.sb.beauty_room.repository.ClientRepository;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import com.mr.sb.beauty_room.repository.TenantRepository;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -201,6 +203,52 @@ class ChatAccountServiceImplementTest {
     }
 
     @Test
+    void linkStylistByCode_shouldSetTelegramChatIdAndConsumeCode() {
+        Stylist stylist = Stylist.builder().id(5L).vincularCode("abc123").build();
+        when(stylistRepository.findByVincularCode("abc123")).thenReturn(Optional.of(stylist));
+        when(stylistRepository.save(any(Stylist.class))).thenAnswer(inv -> inv.getArgument(0));
+        ChannelMessage msg = telegramMessage("111", null, "juan", "Juan");
+
+        Optional<Stylist> result = service.linkStylistByCode(msg, "abc123");
+
+        assertThat(result).contains(stylist);
+        assertThat(stylist.getTelegramChatId()).isEqualTo("111");
+        assertThat(stylist.getVincularCode()).isNull();
+        verify(stylistRepository).save(stylist);
+    }
+
+    @Test
+    void linkStylistByCode_withWhatsapp_shouldSetWhatsappChatId() {
+        Stylist stylist = Stylist.builder().id(5L).vincularCode("abc123").build();
+        when(stylistRepository.findByVincularCode("abc123")).thenReturn(Optional.of(stylist));
+        when(stylistRepository.save(any(Stylist.class))).thenAnswer(inv -> inv.getArgument(0));
+        ChannelMessage msg = whatsappMessage("5491101234567", null, "Ana");
+
+        Optional<Stylist> result = service.linkStylistByCode(msg, "abc123");
+
+        assertThat(result).contains(stylist);
+        assertThat(stylist.getWhatsappChatId()).isEqualTo("5491101234567");
+        assertThat(stylist.getVincularCode()).isNull();
+        verify(stylistRepository).save(stylist);
+    }
+
+    @Test
+    void linkStylistByCode_unknownCode_shouldReturnEmpty() {
+        when(stylistRepository.findByVincularCode("zzz")).thenReturn(Optional.empty());
+        ChannelMessage msg = telegramMessage("111", null, null, null);
+
+        assertThat(service.linkStylistByCode(msg, "zzz")).isEmpty();
+    }
+
+    @Test
+    void linkStylistByCode_blankCode_shouldReturnEmpty() {
+        ChannelMessage msg = telegramMessage("111", null, null, null);
+
+        assertThat(service.linkStylistByCode(msg, "   ")).isEmpty();
+        verify(stylistRepository, never()).findByVincularCode(anyString());
+    }
+
+    @Test
     void safeName_withUsername_shouldReturnUsernameWithAt() {
         ChannelMessage msg = telegramMessage("111", null, "juan", "Juan");
 
@@ -212,6 +260,34 @@ class ChatAccountServiceImplementTest {
         ChannelMessage msg = telegramMessage("111", null, null, "Juan");
 
         assertThat(service.safeName(msg)).isEqualTo("Juan");
+    }
+
+    @Test
+    void isTenantUsable_activeTenant_shouldReturnTrue() {
+        Tenant active = Tenant.builder().id(1L).status(TenantStatus.ACTIVE).build();
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(active));
+
+        assertThat(service.isTenantUsable(1L)).isTrue();
+    }
+
+    @Test
+    void isTenantUsable_suspendedTenant_shouldReturnFalse() {
+        Tenant suspended = Tenant.builder().id(1L).status(TenantStatus.SUSPENDED).build();
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(suspended));
+
+        assertThat(service.isTenantUsable(1L)).isFalse();
+    }
+
+    @Test
+    void isTenantUsable_unknownTenant_shouldReturnFalse() {
+        when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThat(service.isTenantUsable(99L)).isFalse();
+    }
+
+    @Test
+    void isTenantUsable_nullTenantId_shouldReturnFalse() {
+        assertThat(service.isTenantUsable(null)).isFalse();
     }
 
     @Test

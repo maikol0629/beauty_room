@@ -1,5 +1,6 @@
 package com.mr.sb.beauty_room.controllers.panel;
 
+import com.mr.sb.beauty_room.exceptions.TenantSuspendedException;
 import com.mr.sb.beauty_room.security.TenantInterceptor;
 import com.mr.sb.beauty_room.entities.Role;
 import com.mr.sb.beauty_room.entities.Tenant;
@@ -24,10 +25,13 @@ public class PanelTenantHelper {
     }
 
     public Tenant currentTenant() {
-        User user = currentUser();
-        Tenant tenant = user.getTenant();
+        Tenant tenant = currentUser().getTenant();
         if (tenant == null) {
             throw new IllegalStateException("No se pudo resolver el tenant del usuario logueado en el panel");
+        }
+        if (!tenant.isUsable()) {
+            throw new TenantSuspendedException(
+                    "El salón " + tenant.getName() + " no está disponible: su plan venció o fue suspendido.");
         }
         return tenant;
     }

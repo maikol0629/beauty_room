@@ -14,6 +14,12 @@ public interface IChatAccountService {
 
     Long resolveTenant(ChannelMessage msg);
 
+    /**
+     * Indica si el tenant está usable (ACTIVE y trial no vencido). Usado por el
+     * bot para bloquear mensajes de salones suspendidos/vencidos.
+     */
+    boolean isTenantUsable(Long tenantId);
+
     Optional<Client> findClientByChat(ChannelMessage msg, Long tenantId);
 
     Client ensureClient(ChannelMessage msg, Long tenantId);
@@ -21,6 +27,13 @@ public interface IChatAccountService {
     Optional<Stylist> findStylistByChat(ChannelMessage msg, Long tenantId);
 
     Optional<Stylist> findStylistByIdAndTenant(Long stylistId, Long tenantId);
+
+    /**
+     * Vincula el chat del mensaje a un estilista usando el código secreto del
+     * deep link (start=vincular-<código>). Guarda el chatId (Telegram o
+     * WhatsApp según el canal) y consume el código para que no sea reutilizable.
+     */
+    Optional<Stylist> linkStylistByCode(ChannelMessage msg, String code);
 
     String displayName(ChannelMessage msg);
 

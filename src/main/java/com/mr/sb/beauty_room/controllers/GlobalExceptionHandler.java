@@ -2,6 +2,7 @@ package com.mr.sb.beauty_room.controllers;
 
 import com.mr.sb.beauty_room.exceptions.AppointmentConflictException;
 import com.mr.sb.beauty_room.exceptions.TenantNotResolvedException;
+import com.mr.sb.beauty_room.exceptions.TenantSuspendedException;
 import com.mr.sb.beauty_room.exceptions.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -45,6 +46,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TenantNotResolvedException.class)
     public ResponseEntity<ApiErrorResponse> handleTenantNotResolved(TenantNotResolvedException ex, HttpServletRequest request) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(TenantSuspendedException.class)
+    public ResponseEntity<ApiErrorResponse> handleTenantSuspended(TenantSuspendedException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

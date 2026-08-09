@@ -38,4 +38,10 @@ public class TenantCreateDto {
 
     @NotBlank(message = "La contraseña del administrador es obligatoria")
     private String adminPassword;
+
+    /** Nombre del administrador. El admin del salón también es estilista. */
+    @NotBlank(message = "El nombre del administrador es obligatorio")
+    private String adminName;
+
+    private String adminPhone;
 }

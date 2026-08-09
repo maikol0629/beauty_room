@@ -17,6 +17,15 @@ import java.time.LocalDateTime;
 @Table(name = "tenant")
 public class Tenant {
 
+    /**
+     * Un tenant es usable si está ACTIVE y su trial no ha vencido.
+     * trialEndsAt == null significa que nunca expira (ej. el tenant de plataforma).
+     */
+    public boolean isUsable() {
+        return status == TenantStatus.ACTIVE
+                && (trialEndsAt == null || trialEndsAt.isAfter(LocalDateTime.now()));
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

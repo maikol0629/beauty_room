@@ -69,6 +69,12 @@ public class ChatViewServiceImplement implements IChatViewService {
     }
 
     @Override
+    public void sendTenantUnavailable(ChannelMessage msg) {
+        channel.sendMessage(msg.chatId(),
+                "Lo sentimos, tu salón no está disponible en este momento: su plan venció o fue suspendido. Contactate con el administrador de la plataforma.");
+    }
+
+    @Override
     public void showServiceSelection(ChannelMessage msg, List<SalonService> services) {
         List<Button> buttons = services.stream()
                 .map(s -> new Button(s.getNameService() + " · $" + s.getPrice() + " (" + s.getDuration() + " min)",

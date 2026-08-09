@@ -2,6 +2,7 @@ package com.mr.sb.beauty_room.services.implement;
 
 import com.mr.sb.beauty_room.dto.messaging.ChannelMessage;
 import com.mr.sb.beauty_room.entities.ConversationState;
+import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.services.IChatAccountService;
 import com.mr.sb.beauty_room.services.IConversationStateService;
 import com.mr.sb.beauty_room.services.IChatViewService;
@@ -129,6 +130,15 @@ public class ChatUpdateHandler {
     private void handleText(ChannelMessage msg, ConversationState state) {
         String text = msg.text() == null ? "" : msg.text().trim();
         Long tenantId = resolveTenant(msg, state);
+        if (isTenantBlocked(tenantId, msg, state)) {
+            return;
+        }
+
+        String vincularCode = vincularCodeFrom(text);
+        if (vincularCode != null) {
+            handleStylistVincularLink(msg, state, vincularCode);
+            return;
+        }
 
         if (text.startsWith("/start")) {
             if (tenantId != null) {
@@ -192,6 +202,42 @@ public class ChatUpdateHandler {
         }
     }
 
+    // ============================ VINCULACIÓN DE ESTILISTA ============================
+
+    private static final String PREFIX_VINCULAR = "vincular-";
+
+    /**
+     * Extrae el código del deep link de vinculación si el texto lo trae:
+     * "/start vincular-<código>" (Telegram) o "vincular-<código>" (WhatsApp).
+     * Devuelve null si no es un deep link de vinculación.
+     */
+    private String vincularCodeFrom(String text) {
+        String payload = text;
+        if (text.startsWith("/start")) {
+            payload = text.substring("/start".length()).trim();
+        }
+        if (payload.startsWith(PREFIX_VINCULAR)) {
+            String code = payload.substring(PREFIX_VINCULAR.length()).trim();
+            return code.isEmpty() ? null : code;
+        }
+        return null;
+    }
+
+    private void handleStylistVincularLink(ChannelMessage msg, ConversationState state, String code) {
+        Optional<Stylist> linked = accountService.linkStylistByCode(msg, code);
+        if (linked.isPresent()) {
+            Stylist stylist = linked.get();
+            Long tenantId = stylist.getTenant().getId();
+            state.setTenantId(tenantId);
+            stateHelper.updateState(state, STEP_MENU, null);
+            view.sendEndWithMenu(msg, tenantId,
+                    "¡Cuenta vinculada, " + stylist.getNameStylist() + "! Ya podés usar el menú del estilista.");
+        } else {
+            view.sendGuidance(msg);
+            stateHelper.updateState(state, STEP_INITIAL, null);
+        }
+    }
+
     // ============================ CALLBACK ============================
 
     private void handleCallback(ChannelMessage msg, ConversationState state) {
@@ -200,6 +246,9 @@ public class ChatUpdateHandler {
             return;
         }
         Long tenantId = resolveTenant(msg, state);
+        if (isTenantBlocked(tenantId, msg, state)) {
+            return;
+        }
         Map<String, String> data = stateHelper.parseData(state.getData());
 
         switch (cb) {
@@ -408,6 +457,15 @@ public class ChatUpdateHandler {
             state.setTenantId(tenantId);
         }
         return tenantId;
+    }
+
+    private boolean isTenantBlocked(Long tenantId, ChannelMessage msg, ConversationState state) {
+        if (tenantId == null || accountService.isTenantUsable(tenantId)) {
+            return false;
+        }
+        stateHelper.updateState(state, STEP_INITIAL, null);
+        view.sendTenantUnavailable(msg);
+        return true;
     }
 
     private void endWithMenu(ChannelMessage msg, ConversationState state, Long tenantId, String text) {

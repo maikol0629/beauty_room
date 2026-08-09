@@ -8,10 +8,12 @@ import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.repository.StylistRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 @Service
@@ -19,6 +21,7 @@ import java.util.stream.StreamSupport;
 public class StylistServiceImplement implements IStylistService {
 
     private final StylistRepository stylistRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<StylistResponseDto> findAll() {
@@ -66,18 +69,48 @@ public class StylistServiceImplement implements IStylistService {
     @Override
     public boolean save(StylistSaveDto stylistSaveDto) {
         Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
-        if (stylistSaveDto.getName() == null || stylistSaveDto.getName().isBlank()) {
+        String password = stylistSaveDto.getPassword();
+        if (stylistSaveDto.getName() == null || stylistSaveDto.getName().isBlank()
+                || password == null || password.isBlank()) {
             return false;
         }
         Stylist stylist = Stylist.builder()
                 .nameStylist(stylistSaveDto.getName())
                 .email(stylistSaveDto.getEmail())
+                .password(passwordEncoder.encode(password))
                 .phone(stylistSaveDto.getPhone())
                 .telegramChatId(stylistSaveDto.getTelegramChatId())
+                .vincularCode(generateVincularCode())
                 .tenant(Tenant.builder().id(tenantId).build())
                 .build();
         stylistRepository.save(stylist);
         return true;
+    }
+
+    @Override
+    public String findVincularCode(long id) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        return stylistRepository.findByIdAndTenantId(id, tenantId)
+                .map(Stylist::getVincularCode)
+                .orElse(null);
+    }
+
+    @Override
+    public String regenerateVincularCode(long id) {
+        Long tenantId = TenantInterceptor.getCurrentTenantIdOrThrow();
+        Optional<Stylist> opStylist = stylistRepository.findByIdAndTenantId(id, tenantId);
+        if (opStylist.isEmpty()) {
+            return null;
+        }
+        Stylist stylist = opStylist.get();
+        String code = generateVincularCode();
+        stylist.setVincularCode(code);
+        stylistRepository.save(stylist);
+        return code;
+    }
+
+    private String generateVincularCode() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 
 
@@ -108,7 +141,6 @@ public class StylistServiceImplement implements IStylistService {
             stylist.setNameStylist(stylistSaveDto.getName());
             stylist.setEmail(stylistSaveDto.getEmail());
             stylist.setPhone(stylistSaveDto.getPhone());
-            stylist.setTelegramChatId(stylistSaveDto.getTelegramChatId());
             stylistRepository.save(stylist);
             return true;
         }

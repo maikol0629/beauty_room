@@ -41,7 +41,14 @@
       <input type="datetime-local" id="trialEndsAt" th:field="*{trialEndsAt}">
 
       <hr style="border:none;border-top:1px solid var(--border);margin:20px 0 0;">
-      <p class="muted" style="margin-bottom:0;">Usuario administrador del salón (rol ADMIN)</p>
+      <p class="muted" style="margin-bottom:0;">Usuario administrador del salón (rol ADMIN). El admin también es estilista: aparece en el listado y puede tomar citas propias.</p>
+
+      <label for="adminName">Nombre del administrador</label>
+      <input type="text" id="adminName" th:field="*{adminName}" required>
+      <div th:if="${#fields.hasErrors('adminName')}" class="error" th:errors="*{adminName}"></div>
+
+      <label for="adminPhone">Teléfono del administrador (opcional)</label>
+      <input type="text" id="adminPhone" th:field="*{adminPhone}">
 
       <label for="adminEmail">Email</label>
       <input type="email" id="adminEmail" th:field="*{adminEmail}" required>

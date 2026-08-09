@@ -4,6 +4,7 @@ import com.mr.sb.beauty_room.config.SuperAdminInitializer;
 import com.mr.sb.beauty_room.dto.superadmin.TenantCreateDto;
 import com.mr.sb.beauty_room.dto.superadmin.TenantUpdateDto;
 import com.mr.sb.beauty_room.entities.Role;
+import com.mr.sb.beauty_room.entities.Stylist;
 import com.mr.sb.beauty_room.entities.Tenant;
 import com.mr.sb.beauty_room.entities.TenantPlan;
 import com.mr.sb.beauty_room.entities.TenantStatus;
@@ -51,7 +52,7 @@ class SuperAdminServiceImplementTest {
     private SuperAdminServiceImplement superAdminService;
 
     @Test
-    void createTenant_shouldGenerateSlugKeyAndCreateAdminUser() {
+    void createTenant_shouldGenerateSlugKeyAndCreateAdminStylist() {
         TenantCreateDto dto = TenantCreateDto.builder()
                 .name("Salón Bella")
                 .tenantKey("")
@@ -59,6 +60,7 @@ class SuperAdminServiceImplementTest {
                 .status(TenantStatus.ACTIVE)
                 .adminEmail("admin@salonbella.com")
                 .adminPassword("secreto123")
+                .adminName("María Bella")
                 .build();
 
         when(tenantRepository.findByTenantKey(anyString())).thenReturn(Optional.empty());
@@ -75,6 +77,8 @@ class SuperAdminServiceImplementTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         User admin = userCaptor.getValue();
+        assertThat(admin).isInstanceOf(Stylist.class);
+        assertThat(((Stylist) admin).getNameStylist()).isEqualTo("María Bella");
         assertThat(admin.getEmail()).isEqualTo(dto.getAdminEmail());
         assertThat(admin.getPassword()).isEqualTo("hash-bcrypt");
         assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
@@ -193,5 +197,35 @@ class SuperAdminServiceImplementTest {
         Tenant updated = superAdminService.setTenantStatus(1L, TenantStatus.SUSPENDED);
 
         assertThat(updated.getStatus()).isEqualTo(TenantStatus.SUSPENDED);
+    }
+
+    @Test
+    void deleteTenant_shouldMarkAsCancelled() {
+        Tenant existing = Tenant.builder().id(1L).tenantKey("salon-x")
+                .status(TenantStatus.ACTIVE).build();
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(tenantRepository.save(any(Tenant.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        boolean deleted = superAdminService.deleteTenant(1L);
+
+        assertThat(deleted).isTrue();
+        assertThat(existing.getStatus()).isEqualTo(TenantStatus.CANCELLED);
+    }
+
+    @Test
+    void deleteTenant_tenantNotFound_shouldReturnFalse() {
+        when(tenantRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThat(superAdminService.deleteTenant(1L)).isFalse();
+    }
+
+    @Test
+    void deleteTenant_platformTenant_shouldReturnFalse() {
+        Tenant platform = Tenant.builder().id(99L)
+                .tenantKey(SuperAdminInitializer.PLATFORM_TENANT_KEY)
+                .status(TenantStatus.ACTIVE).build();
+        when(tenantRepository.findById(99L)).thenReturn(Optional.of(platform));
+
+        assertThat(superAdminService.deleteTenant(99L)).isFalse();
     }
 }

@@ -10,7 +10,11 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -62,12 +66,55 @@ class PanelSuperAdminSecurityTest {
                         .param("plan", "TRIAL")
                         .param("status", "ACTIVE")
                         .param("adminEmail", "admin.prueba@example.com")
-                        .param("adminPassword", "password"))
+                        .param("adminPassword", "password")
+                        .param("adminName", "Ana Prueba")
+                        .param("adminPhone", "555000999"))
                 .andExpect(status().is3xxRedirection());
 
         mockMvc.perform(get("/panel/super/tenants").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Salón Prueba")));
+    }
+
+    @Test
+    void superAdmin_shouldDeleteTenant() throws Exception {
+        MockHttpSession session = loginAs(SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD);
+
+        mockMvc.perform(post("/panel/super/tenants").session(session).with(csrf())
+                        .param("name", "Salón A Eliminar")
+                        .param("plan", "TRIAL")
+                        .param("status", "ACTIVE")
+                        .param("adminEmail", "admin.eliminar@example.com")
+                        .param("adminPassword", "password")
+                        .param("adminName", "Ana Eliminar")
+                        .param("adminPhone", "555000111"))
+                .andExpect(status().is3xxRedirection());
+
+        long id = lastTenantId(session);
+
+        mockMvc.perform(post("/panel/super/tenants/" + id + "/delete").session(session).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/panel/super/tenants").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Salón A Eliminar"))));
+
+        mockMvc.perform(get("/panel/super/tenants").param("status", "CANCELLED").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Salón A Eliminar")));
+    }
+
+    private long lastTenantId(MockHttpSession session) throws Exception {
+        MvcResult result = mockMvc.perform(get("/panel/super/tenants").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+        Matcher matcher = Pattern.compile("/panel/super/tenants/(\\d+)\"")
+                .matcher(result.getResponse().getContentAsString());
+        long max = -1;
+        while (matcher.find()) {
+            max = Math.max(max, Long.parseLong(matcher.group(1)));
+        }
+        return max;
     }
 
     @Test

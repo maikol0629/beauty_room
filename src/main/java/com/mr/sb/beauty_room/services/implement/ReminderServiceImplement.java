@@ -58,6 +58,9 @@ public class ReminderServiceImplement implements IReminderService {
         LocalDateTime now = LocalDateTime.now();
         List<AppointmentStatus> active = List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED);
         for (Tenant tenant : tenantRepository.findAll()) {
+            if (!tenant.isUsable()) {
+                continue;
+            }
             List<Appointment> candidates = appointmentRepository.findRemindable(
                     tenant.getId(), active, now, now.plus(WINDOW_24H));
             for (Appointment appointment : candidates) {
@@ -148,6 +151,9 @@ public class ReminderServiceImplement implements IReminderService {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
         for (Tenant tenant : tenantRepository.findAll()) {
+            if (!tenant.isUsable()) {
+                continue;
+            }
             List<Stylist> stylists = stylistRepository.findByTenantId(tenant.getId());
             for (Stylist stylist : stylists) {
                 sendStylistSummary(stylist, tenant.getId(), startOfDay, endOfDay);

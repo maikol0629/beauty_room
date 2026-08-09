@@ -61,7 +61,7 @@ public class ClientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('STYLIST')")
+    @PreAuthorize("hasAnyRole('STYLIST', 'ADMIN')")
     public ResponseEntity<List<ClientResponseDto>> getAllClients() {
         return ResponseEntity.ok(clientService.findAll());
     }

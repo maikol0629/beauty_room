@@ -71,6 +71,57 @@ class PanelSecurityTest {
     }
 
     @Test
+    void stylistLogin_shouldCreateStylistAndShowVincularLink() throws Exception {
+        MockHttpSession session = loginAs("john@example.com");
+
+        mockMvc.perform(post("/panel/stylists").session(session).with(csrf())
+                        .param("name", "Estilista Nuevo")
+                        .param("email", "nuevo.estilista@example.com")
+                        .param("password", "password")
+                        .param("phone", "555000222"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/panel/stylists").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Estilista Nuevo")))
+                .andExpect(content().string(containsString("vincular-")));
+    }
+
+    @Test
+    void adminStylistLogin_shouldSeeHimselfInStylistList() throws Exception {
+        MockHttpSession session = loginAs("admin@example.com");
+
+        mockMvc.perform(get("/panel").session(session)).andExpect(status().isOk());
+        mockMvc.perform(get("/panel/stylists").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("María López")));
+    }
+
+    @Test
+    void stylistLogin_shouldRegenerateVincularLink() throws Exception {
+        MockHttpSession session = loginAs("john@example.com");
+
+        mockMvc.perform(post("/panel/stylists/1/regenerate-link").session(session).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/panel/stylists").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("vincular-")));
+    }
+
+    @Test
+    void stylistCreate_shouldRejectMissingPassword() throws Exception {
+        MockHttpSession session = loginAs("john@example.com");
+
+        mockMvc.perform(post("/panel/stylists").session(session).with(csrf())
+                        .param("name", "Sin Password")
+                        .param("email", "sin.password@example.com")
+                        .param("phone", "555000333"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("La contraseña es obligatoria")));
+    }
+
+    @Test
     void qrImage_shouldReturnPngForLoggedStylist() throws Exception {
         MockHttpSession session = loginAs("john@example.com");
         mockMvc.perform(get("/panel/qr.png").session(session))
